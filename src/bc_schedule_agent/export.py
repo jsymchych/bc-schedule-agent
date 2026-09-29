@@ -136,6 +136,8 @@ def issue_schedule(
     ruleset_hash: str | None = None,
     actor: str = "agent",
     timestamp: str | None = None,
+    parameter_shelf_id: str | None = None,
+    history_prior_week_starts: list[str] | None = None,
 ) -> IssueResult:
     """Write `issued` only when every OT line is clear of PENDING_APPROVAL."""
     assert_no_pending_ot(result.ot_proposals)
@@ -154,6 +156,9 @@ def issue_schedule(
         "legal_posture": LEGAL_POSTURE,
         "statute_url": STATUTE_URL,
         "timestamp": ts,
+        # Wave C: shelf id + prior week starts (empty until history / Wave D).
+        "parameter_shelf_id": parameter_shelf_id,
+        "history_prior_week_starts": list(history_prior_week_starts or []),
     }
     if ruleset_hash is not None:
         evidence["ruleset_hash"] = ruleset_hash

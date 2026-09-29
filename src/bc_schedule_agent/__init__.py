@@ -46,7 +46,10 @@ from bc_schedule_agent.replay import (
     ReplayInputs,
     ReplayMismatch,
     issued_gate_snapshot,
+    load_replay_envelope,
+    reopen_from_week_dir,
     replay,
+    write_replay_envelope,
 )
 from bc_schedule_agent.ruleset import Ruleset, load_ruleset, ruleset_hash
 from bc_schedule_agent.shelf import (
@@ -90,6 +93,7 @@ __all__ = [
     "gate_snapshot_hash",
     "issue_schedule",
     "issued_gate_snapshot",
+    "load_replay_envelope",
     "load_ruleset",
     "load_staffing",
     "parse_availability_sheet",
@@ -101,10 +105,12 @@ __all__ = [
     "pending_ot_lines",
     "plan_coverage",
     "refuse_ot",
+    "reopen_from_week_dir",
     "replay",
     "ruleset_hash",
     "run_smoke_script",
     "write_exhibits",
+    "write_replay_envelope",
 ]
 
 __version__ = "0.1.0"

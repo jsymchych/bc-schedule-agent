@@ -22,8 +22,14 @@ from bc_schedule_agent.export import (
     issue_schedule,
     schedule_hash,
 )
-from bc_schedule_agent.history import WeekHistoryStore
+from bc_schedule_agent.history import WeekHistoryStore, week_dirname
 from bc_schedule_agent.models import ComposeResult, OvertimeProposal, PlacedShift
+from bc_schedule_agent.replay import (
+    REPLAY_INPUTS_FILENAME,
+    ReplayInputs,
+    with_gate_snapshot,
+    write_replay_envelope,
+)
 
 
 @dataclass(frozen=True)
@@ -65,6 +71,7 @@ class ExhibitPaths:
     pdf: Path
     xlsx: Path
     audit_json: Path
+    replay_inputs: Path | None = None
 
 
 @dataclass
@@ -644,16 +651,30 @@ def write_exhibits(
     history_root: Path | None = None,
     history_max_weeks: int | None = None,
     parameter_shelf_id: str | None = None,
+    history_prior_week_starts: list[str] | None = None,
+    replay_inputs: ReplayInputs | None = None,
 ) -> ExhibitBundle:
     """Issue the schedule and write PDF + XLSX + audit.json under out_dir.
 
     When history_root is set, append the issued week to the rolling history shelf.
     Draft-only compose paths never call this — history stays issue-only.
     Copies parameter_shelf_id onto the week record when provided.
+    When replay_inputs is provided, write replay_inputs.json beside exhibits
+    and into the history week dir (Wave C envelope).
     """
     if any(e.kind == "rule_refuse" for e in chain.events):
         raise ExportBlocked("export blocked: rule_refuse present on chain")
     assert_no_pending_ot(result.ot_proposals)
+
+    prior_starts = list(history_prior_week_starts or [])
+    store: WeekHistoryStore | None = None
+    if history_root is not None:
+        kwargs: dict[str, Any] = {"root": Path(history_root)}
+        if history_max_weeks is not None:
+            kwargs["history_max_weeks"] = history_max_weeks
+        store = WeekHistoryStore(**kwargs)
+        if history_prior_week_starts is None:
+            prior_starts = [r.week_start for r in store.load_index().rows]
 
     model = ScheduleModel.from_compose(
         result,
@@ -670,6 +691,8 @@ def write_exhibits(
         ruleset_hash=ruleset_hash,
         actor=actor,
         timestamp=timestamp,
+        parameter_shelf_id=parameter_shelf_id,
+        history_prior_week_starts=prior_starts,
     )
     if issue.schedule_hash != model.schedule_hash:
         raise ExportBlocked("issued schedule hash diverged from model")
@@ -689,19 +712,36 @@ def write_exhibits(
         json.dumps(audit, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
 
-    if history_root is not None:
-        kwargs: dict[str, Any] = {"root": Path(history_root)}
-        if history_max_weeks is not None:
-            kwargs["history_max_weeks"] = history_max_weeks
-        store = WeekHistoryStore(**kwargs)
+    envelope_path: Path | None = None
+    envelope_inputs: ReplayInputs | None = None
+    if replay_inputs is not None:
+        envelope_inputs = with_gate_snapshot(replay_inputs, issue.gate_snapshot)
+        envelope_path = write_replay_envelope(
+            out_dir / REPLAY_INPUTS_FILENAME, envelope_inputs
+        )
+
+    exhibit_paths: dict[str, str] = {
+        "pdf": str(pdf_path),
+        "xlsx": str(xlsx_path),
+        "audit_json": str(audit_path),
+    }
+    if envelope_path is not None:
+        exhibit_paths["replay_inputs"] = str(envelope_path)
+
+    if store is not None:
+        store.ensure_layout()
+        week_path = store.weeks_dir / week_dirname(week_start, decision_id)
+        week_path.mkdir(parents=True, exist_ok=True)
+        # Durable envelope lives in the week dir for dual-plane reopen.
+        if envelope_inputs is not None:
+            week_envelope = write_replay_envelope(
+                week_path / REPLAY_INPUTS_FILENAME, envelope_inputs
+            )
+            exhibit_paths["replay_inputs"] = str(week_envelope)
         store.record_issue(
             week_start=week_start,
             decision_id=decision_id,
-            exhibit_paths={
-                "pdf": str(pdf_path),
-                "xlsx": str(xlsx_path),
-                "audit_json": str(audit_path),
-            },
+            exhibit_paths=exhibit_paths,
             schedule_hash=issue.schedule_hash,
             gate_snapshot_hash=gate_snapshot_hash(issue.gate_snapshot),
             parameter_shelf_id=parameter_shelf_id,
@@ -711,7 +751,12 @@ def write_exhibits(
     return ExhibitBundle(
         model=model,
         issue=issue,
-        paths=ExhibitPaths(pdf=pdf_path, xlsx=xlsx_path, audit_json=audit_path),
+        paths=ExhibitPaths(
+            pdf=pdf_path,
+            xlsx=xlsx_path,
+            audit_json=audit_path,
+            replay_inputs=envelope_path,
+        ),
         pdf_bytes=pdf_bytes,
         xlsx_bytes=xlsx_bytes,
         audit=audit,

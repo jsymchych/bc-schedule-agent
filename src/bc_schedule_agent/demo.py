@@ -723,6 +723,14 @@ class DemoSession:
                 if self.parameter_shelf is not None
                 else None
             ),
+            replay_inputs=ReplayInputs(
+                availability_raw=self.availability_raw,
+                demand=self.demand_payload or {},
+                ruleset_hash=ruleset.content_hash,
+                time_off_raw=self.time_off_raw,
+                averaging_packets=tuple(self.packet_payloads),
+                prefer_zero_ot=True,
+            ),
         )
         self.exhibit_dir = target
         self.exhibit_paths = {
@@ -730,6 +738,8 @@ class DemoSession:
             "xlsx": str(bundle.paths.xlsx),
             "audit_json": str(bundle.paths.audit_json),
         }
+        if bundle.paths.replay_inputs is not None:
+            self.exhibit_paths["replay_inputs"] = str(bundle.paths.replay_inputs)
         inputs = ReplayInputs(
             availability_raw=self.availability_raw,
             demand=self.demand_payload or {},
