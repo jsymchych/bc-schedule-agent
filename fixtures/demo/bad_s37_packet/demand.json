@@ -1,0 +1,39 @@
+{
+  "demand_id": "dem_bad_packet",
+  "shifts": [
+    {
+      "date": "2026-09-28",
+      "employee": "sam",
+      "end": "18:30",
+      "meal_break_minutes": 30,
+      "shift_id": "sh_2026-09-28",
+      "start": "08:00"
+    },
+    {
+      "date": "2026-09-29",
+      "employee": "sam",
+      "end": "18:30",
+      "meal_break_minutes": 30,
+      "shift_id": "sh_2026-09-29",
+      "start": "08:00"
+    },
+    {
+      "date": "2026-09-30",
+      "employee": "sam",
+      "end": "18:30",
+      "meal_break_minutes": 30,
+      "shift_id": "sh_2026-09-30",
+      "start": "08:00"
+    },
+    {
+      "date": "2026-10-01",
+      "employee": "sam",
+      "end": "18:30",
+      "meal_break_minutes": 30,
+      "shift_id": "sh_2026-10-01",
+      "start": "08:00"
+    }
+  ],
+  "source": "fixture",
+  "week_start": "2026-09-27"
+}

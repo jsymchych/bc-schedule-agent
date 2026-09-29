@@ -1,0 +1,54 @@
+{
+  "copy_received_before_start": true,
+  "copy_received_date": "2026-09-21",
+  "daily_schedule": [
+    {
+      "date": "2026-09-27",
+      "scheduled_hours": 0
+    },
+    {
+      "date": "2026-09-28",
+      "end": "18:00",
+      "scheduled_hours": 10,
+      "start": "08:00"
+    },
+    {
+      "date": "2026-09-29",
+      "end": "18:00",
+      "scheduled_hours": 10,
+      "start": "08:00"
+    },
+    {
+      "date": "2026-09-30",
+      "end": "18:00",
+      "scheduled_hours": 10,
+      "start": "08:00"
+    },
+    {
+      "date": "2026-10-01",
+      "end": "18:00",
+      "scheduled_hours": 10,
+      "start": "08:00"
+    },
+    {
+      "date": "2026-10-02",
+      "scheduled_hours": 0
+    },
+    {
+      "date": "2026-10-03",
+      "scheduled_hours": 0
+    }
+  ],
+  "employee": "sam",
+  "employee_signature_date": null,
+  "employee_signed": false,
+  "employer_signature_date": "2026-09-20",
+  "employer_signed": true,
+  "expiry_date": "2026-10-03",
+  "in_writing": true,
+  "packet_id": "agr_sam_unsigned",
+  "period_weeks": 1,
+  "repeat_count": 0,
+  "signed_before_start": true,
+  "start_date": "2026-09-27"
+}

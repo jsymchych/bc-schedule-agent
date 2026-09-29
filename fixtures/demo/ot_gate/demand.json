@@ -1,0 +1,15 @@
+{
+  "demand_id": "dem_ot_week",
+  "shifts": [
+    {
+      "date": "2026-09-28",
+      "employee": "sam",
+      "end": "18:30",
+      "meal_break_minutes": 30,
+      "shift_id": "sh_ot_mon",
+      "start": "08:00"
+    }
+  ],
+  "source": "fixture",
+  "week_start": "2026-09-27"
+}

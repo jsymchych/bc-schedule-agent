@@ -1,0 +1,271 @@
+{
+  "decision_id": "dec_demo_clean_week_2026w40",
+  "events": [
+    {
+      "actor": "agent",
+      "event_id": "aud_03001c878f2b",
+      "evidence": {
+        "input_hash": "sha256:ec2b14186dd97e8a51cee7eda70b5564f74af4a095de4b993dedf1e5f5f116b7",
+        "source": "bytes"
+      },
+      "kind": "ingest",
+      "prev_event_id": null,
+      "prose": "agent ingested availability (hash sha256:ec2b14186dd97e8a51cee7eda70b5564f74af4a095de4b993dedf1e5f5f116b7).",
+      "subject": {
+        "rows": 7,
+        "sheet": "availability"
+      },
+      "timestamp": "2026-09-29T05:03:19.767387Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_eba2e1a9042f",
+      "evidence": {
+        "input_hash": "sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243",
+        "source": "bytes"
+      },
+      "kind": "ingest",
+      "prev_event_id": "aud_03001c878f2b",
+      "prose": "agent ingested time_off (hash sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243).",
+      "subject": {
+        "rows": 0,
+        "sheet": "time_off"
+      },
+      "timestamp": "2026-09-29T05:03:19.767497Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_b5b62a89c929",
+      "evidence": {
+        "demand": {
+          "shift_ids": [
+            "sh_2026-09-28",
+            "sh_2026-09-29",
+            "sh_2026-09-30",
+            "sh_2026-10-01",
+            "sh_2026-10-02"
+          ],
+          "week_start": "2026-09-27"
+        },
+        "input_hash": "sha256:ecec2d71399d4074c0f5cb2c3c9fbab6898b9df2488fbd90b740fce22ca42ad7",
+        "source": "fixture"
+      },
+      "kind": "parse",
+      "prev_event_id": "aud_eba2e1a9042f",
+      "prose": "agent stored coverage demand dem_clean_week from fixture (5 shifts).",
+      "subject": {
+        "demand_id": "dem_clean_week",
+        "shifts": 5
+      },
+      "timestamp": "2026-09-29T05:03:19.767535Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_27ee68c5e536",
+      "evidence": {
+        "end": "17:30",
+        "regime": "standard",
+        "start": "09:00",
+        "worked_hours": 8.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_b5b62a89c929",
+      "prose": "agent placed sam on 2026-09-28 09:00-17:30 (8.0h, regime standard).",
+      "subject": {
+        "date": "2026-09-28",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-28"
+      },
+      "timestamp": "2026-09-29T05:03:19.767562Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_5c366f55f191",
+      "evidence": {
+        "end": "17:30",
+        "regime": "standard",
+        "start": "09:00",
+        "worked_hours": 8.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_27ee68c5e536",
+      "prose": "agent placed sam on 2026-09-29 09:00-17:30 (8.0h, regime standard).",
+      "subject": {
+        "date": "2026-09-29",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-29"
+      },
+      "timestamp": "2026-09-29T05:03:19.767579Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_8633c38b2230",
+      "evidence": {
+        "end": "17:30",
+        "regime": "standard",
+        "start": "09:00",
+        "worked_hours": 8.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_5c366f55f191",
+      "prose": "agent placed sam on 2026-09-30 09:00-17:30 (8.0h, regime standard).",
+      "subject": {
+        "date": "2026-09-30",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-30"
+      },
+      "timestamp": "2026-09-29T05:03:19.767591Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_3d06708f2f8d",
+      "evidence": {
+        "end": "17:30",
+        "regime": "standard",
+        "start": "09:00",
+        "worked_hours": 8.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_8633c38b2230",
+      "prose": "agent placed sam on 2026-10-01 09:00-17:30 (8.0h, regime standard).",
+      "subject": {
+        "date": "2026-10-01",
+        "employee": "sam",
+        "shift_id": "sh_2026-10-01"
+      },
+      "timestamp": "2026-09-29T05:03:19.767602Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_50856f7d4962",
+      "evidence": {
+        "end": "17:30",
+        "regime": "standard",
+        "start": "09:00",
+        "worked_hours": 8.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_3d06708f2f8d",
+      "prose": "agent placed sam on 2026-10-02 09:00-17:30 (8.0h, regime standard).",
+      "subject": {
+        "date": "2026-10-02",
+        "employee": "sam",
+        "shift_id": "sh_2026-10-02"
+      },
+      "timestamp": "2026-09-29T05:03:19.767613Z"
+    },
+    {
+      "actor": "rule:bc-esa-s35-daily-overtime-threshold",
+      "event_id": "aud_179f6c244421",
+      "evidence": {
+        "daily_hours": 8.0,
+        "regime": "standard",
+        "section": "35(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_50856f7d4962",
+      "prose": "rule:bc-esa-s35-daily-overtime-threshold passed sam on 2026-09-28: ok.",
+      "subject": {
+        "date": "2026-09-28",
+        "employee": "sam"
+      },
+      "timestamp": "2026-09-29T05:03:19.767627Z"
+    },
+    {
+      "actor": "rule:bc-esa-s35-daily-overtime-threshold",
+      "event_id": "aud_3a4bb94ab3c0",
+      "evidence": {
+        "daily_hours": 8.0,
+        "regime": "standard",
+        "section": "35(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_179f6c244421",
+      "prose": "rule:bc-esa-s35-daily-overtime-threshold passed sam on 2026-09-29: ok.",
+      "subject": {
+        "date": "2026-09-29",
+        "employee": "sam"
+      },
+      "timestamp": "2026-09-29T05:03:19.767634Z"
+    },
+    {
+      "actor": "rule:bc-esa-s35-daily-overtime-threshold",
+      "event_id": "aud_585eded65b59",
+      "evidence": {
+        "daily_hours": 8.0,
+        "regime": "standard",
+        "section": "35(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_3a4bb94ab3c0",
+      "prose": "rule:bc-esa-s35-daily-overtime-threshold passed sam on 2026-09-30: ok.",
+      "subject": {
+        "date": "2026-09-30",
+        "employee": "sam"
+      },
+      "timestamp": "2026-09-29T05:03:19.767638Z"
+    },
+    {
+      "actor": "rule:bc-esa-s35-daily-overtime-threshold",
+      "event_id": "aud_8a358950b134",
+      "evidence": {
+        "daily_hours": 8.0,
+        "regime": "standard",
+        "section": "35(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_585eded65b59",
+      "prose": "rule:bc-esa-s35-daily-overtime-threshold passed sam on 2026-10-01: ok.",
+      "subject": {
+        "date": "2026-10-01",
+        "employee": "sam"
+      },
+      "timestamp": "2026-09-29T05:03:19.767643Z"
+    },
+    {
+      "actor": "rule:bc-esa-s35-daily-overtime-threshold",
+      "event_id": "aud_2ca6a122e19a",
+      "evidence": {
+        "daily_hours": 8.0,
+        "regime": "standard",
+        "section": "35(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_8a358950b134",
+      "prose": "rule:bc-esa-s35-daily-overtime-threshold passed sam on 2026-10-02: ok.",
+      "subject": {
+        "date": "2026-10-02",
+        "employee": "sam"
+      },
+      "timestamp": "2026-09-29T05:03:19.767647Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_a7172be38ef7",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 0,
+        "placed_count": 5,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:263ffc03079bb639f7c3ced14d0ee4ccded8cbfbbf75bf9ba3696fc54e0f9035",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_2ca6a122e19a",
+      "prose": "agent issued decision dec_demo_clean_week_2026w40 schedule_hash=sha256:263ffc03079bb639f7c3ced14d0ee4ccded8cbfbbf75bf9ba3696fc54e0f9035.",
+      "subject": {
+        "decision_id": "dec_demo_clean_week_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    }
+  ],
+  "hours_and_multipliers_only": true,
+  "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+  "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+  "ruleset_version": "esa_bc_v1",
+  "schedule_hash": "sha256:263ffc03079bb639f7c3ced14d0ee4ccded8cbfbbf75bf9ba3696fc54e0f9035",
+  "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+  "week_start": "2026-09-27"
+}

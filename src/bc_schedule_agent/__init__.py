@@ -1,4 +1,4 @@
-"""BC schedule agent — audit chain, rule graph, ingest, composer, regimes, gates, exhibits."""
+"""BC schedule agent — audit chain, rule graph, ingest, composer, regimes, gates, exhibits, demo."""
 
 from bc_schedule_agent.audit import (
     AUDIT_KINDS,
@@ -7,6 +7,7 @@ from bc_schedule_agent.audit import (
     AuditError,
 )
 from bc_schedule_agent.composer import compose_week
+from bc_schedule_agent.demo import DemoSession, run_smoke_script
 from bc_schedule_agent.exhibit import (
     LEGAL_POSTURE,
     STATUTE_URL,
@@ -42,6 +43,7 @@ __all__ = [
     "AuditChain",
     "AuditEvent",
     "AuditError",
+    "DemoSession",
     "ExportBlocked",
     "GateError",
     "LEGAL_POSTURE",
@@ -69,6 +71,7 @@ __all__ = [
     "refuse_ot",
     "replay",
     "ruleset_hash",
+    "run_smoke_script",
     "write_exhibits",
 ]
 
