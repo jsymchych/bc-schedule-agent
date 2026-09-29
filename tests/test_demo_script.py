@@ -156,7 +156,21 @@ def test_demo_app_page_serves() -> None:
     assert "Named human" in PAGE
     assert "audit.json" in PAGE
     assert "browserDownload" in PAGE
-    assert "/api/exhibit/pdf" in PAGE
+    assert "downloadType" in PAGE
+    assert "exhibitsIssued" in PAGE
+    assert 'id="btn-download-pdf"' in PAGE
+    assert 'id="btn-download-xlsx"' in PAGE
+    assert 'id="btn-download-audit"' in PAGE
+    assert 'id="btn-download"' not in PAGE
+    assert "Download PDF / XLSX / audit.json" not in PAGE
+    assert "Promise.all" not in PAGE
+    assert 'browserDownload("/api/exhibit/" + kind)' in PAGE
+    assert 'downloadType("pdf", "PDF")' in PAGE
+    assert 'downloadType("xlsx", "XLSX")' in PAGE
+    assert 'downloadType("audit.json", "audit.json")' in PAGE
+    assert "saved to Downloads." in PAGE
+    assert 'api("/api/download"' in PAGE
+    assert "if (!exhibitsIssued(state))" in PAGE
     from bc_schedule_agent.demo_app import UPLOAD_PATHS
 
     assert "/api/upload/hours_of_operation" in UPLOAD_PATHS

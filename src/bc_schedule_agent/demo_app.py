@@ -220,7 +220,11 @@ PAGE = """<!DOCTYPE html>
     <textarea id="ask" placeholder="e.g. Take Mon–Fri hours and steady sales with Sam and Jordan available"></textarea>
     <div class="row">
       <button id="btn-run" type="button">Draft week</button>
-      <button id="btn-download" type="button" disabled>Download PDF / XLSX / audit.json</button>
+    </div>
+    <div class="row download-types" aria-label="Download exhibit type">
+      <button id="btn-download-pdf" type="button" disabled>PDF</button>
+      <button id="btn-download-xlsx" type="button" disabled>XLSX</button>
+      <button id="btn-download-audit" type="button" disabled>audit.json</button>
     </div>
     <h2 style="font-size:1.05rem;margin:1rem 0 0.35rem;">Four inputs</h2>
     <div id="inputs" class="inputs"><p class="cell-empty">Draft a scenario to show hours, sales, availability, and time-off.</p></div>
@@ -256,6 +260,7 @@ PAGE = """<!DOCTYPE html>
 </footer>
 <script>
 const $ = (id) => document.getElementById(id);
+let lastState = {};
 
 async function api(path, body) {
   const res = await fetch(path, {
@@ -266,6 +271,17 @@ async function api(path, body) {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || res.statusText);
   return data;
+}
+
+function exhibitsIssued(state) {
+  const paths = (state && state.exhibit_paths) || {};
+  return !!(paths.pdf || paths.xlsx || paths.audit_json);
+}
+
+function setDownloadEnabled(enabled) {
+  $("btn-download-pdf").disabled = !enabled;
+  $("btn-download-xlsx").disabled = !enabled;
+  $("btn-download-audit").disabled = !enabled;
 }
 
 function renderInputs(inputs) {
@@ -285,6 +301,7 @@ function renderInputs(inputs) {
 }
 
 function render(state) {
+  lastState = state || {};
   const status = $("status");
   if (state.last_error) {
     status.textContent = state.last_error;
@@ -302,7 +319,7 @@ function render(state) {
     status.className = pend ? "status warn" : "status ok";
   }
 
-  $("btn-download").disabled = !state.download_enabled;
+  setDownloadEnabled(!!state.download_enabled);
   const hasPending = state.pending_ot_count > 0;
   $("btn-approve").disabled = !hasPending;
   $("btn-refuse").disabled = !hasPending;
@@ -380,24 +397,30 @@ $("btn-refuse").onclick = async () => {
   }
 };
 
-$("btn-download").onclick = async () => {
+async function downloadType(kind, label) {
   try {
-    const state = await api("/api/download", {});
-    render(state);
-    await Promise.all([
-      browserDownload("/api/exhibit/pdf"),
-      browserDownload("/api/exhibit/xlsx"),
-      browserDownload("/api/exhibit/audit.json"),
-    ]);
-    if (state.replay_sentence) {
-      $("status").textContent = state.replay_sentence + " PDF, XLSX, and audit.json saved to Downloads.";
-      $("status").className = "status ok";
+    let state = lastState;
+    let justIssued = false;
+    if (!exhibitsIssued(state)) {
+      state = await api("/api/download", {});
+      justIssued = true;
+      render(state);
     }
+    await browserDownload("/api/exhibit/" + kind);
+    const saved = label + " saved to Downloads.";
+    $("status").textContent = (justIssued && state.replay_sentence)
+      ? state.replay_sentence + " " + saved
+      : saved;
+    $("status").className = "status ok";
   } catch (e) {
     $("status").textContent = String(e.message || e);
     $("status").className = "status warn";
   }
-};
+}
+
+$("btn-download-pdf").onclick = () => downloadType("pdf", "PDF");
+$("btn-download-xlsx").onclick = () => downloadType("xlsx", "XLSX");
+$("btn-download-audit").onclick = () => downloadType("audit.json", "audit.json");
 
 async function browserDownload(path) {
   const res = await fetch(path);
