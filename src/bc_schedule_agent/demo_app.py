@@ -22,6 +22,15 @@ from bc_schedule_agent.gates import GateError
 
 SESSION = DemoSession()
 
+UPLOAD_PATHS = {
+    "/api/upload/hours_of_operation": "hours_of_operation",
+    "/api/upload/sales_projections": "sales_projections",
+    "/api/upload/availability": "availability",
+    "/api/upload/time_off": "time_off",
+    "/api/upload/averaging_packet": "averaging_packet",
+    "/api/upload/demand": "demand",
+}
+
 
 PAGE = """<!DOCTYPE html>
 <html lang="en">
@@ -538,10 +547,33 @@ class DemoHandler(BaseHTTPRequestHandler):
             if path == "/api/download":
                 self._json(200, SESSION.write_downloads())
                 return
+            if path in UPLOAD_PATHS:
+                raw = self._upload_bytes(body)
+                self._json(200, SESSION.upload_sheet(UPLOAD_PATHS[path], raw))
+                return
             self._json(404, {"error": "not found"})
         except (ExportBlocked, GateError, RuntimeError, ValueError) as exc:
             SESSION.last_error = str(exc)
             self._json(409, {"error": str(exc), **SESSION.to_state()})
+
+    def _upload_bytes(self, body: dict[str, Any]) -> bytes:
+        """Accept JSON csv/content/text, nested packet/demand objects, or raw string."""
+        if "csv" in body and body["csv"] is not None:
+            return str(body["csv"]).encode("utf-8")
+        if "content" in body and body["content"] is not None:
+            val = body["content"]
+            if isinstance(val, (dict, list)):
+                return json.dumps(val, indent=2, sort_keys=True).encode("utf-8")
+            return str(val).encode("utf-8")
+        if "text" in body and body["text"] is not None:
+            return str(body["text"]).encode("utf-8")
+        if "packet" in body and body["packet"] is not None:
+            return json.dumps(body["packet"], indent=2, sort_keys=True).encode("utf-8")
+        if "demand" in body and body["demand"] is not None:
+            return json.dumps(body["demand"], indent=2, sort_keys=True).encode("utf-8")
+        raise ValueError(
+            "upload body needs csv, content, text, packet, or demand"
+        )
 
 
 def main(argv: list[str] | None = None) -> int:

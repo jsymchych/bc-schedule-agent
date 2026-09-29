@@ -23,9 +23,9 @@ python3 -c "from bc_schedule_agent.demo import run_smoke_script; print(run_smoke
 
 ## Minute 0–4 — Busy week, zero OT
 
-1. Scenario: **Busy week — zero OT** (or ask: “Take Mon–Fri hours and steady sales with Sam and Jordan available”).
-2. Show the **four inputs**: hours open Mon–Fri 09:00–17:30; sales ~$1,500 each weekday; Sam and Jordan available; no time-off.
-3. Click **Draft week**. Grid shows Sam and Jordan covering each weekday at 8h with a meal break — no overtime line.
+1. Scenario: **Busy week — zero OT** (or ask: “Take Mon–Fri hours and steady sales with Sam, Jordan, and Riley available”).
+2. Show the **four inputs**: hours open Mon–Fri 09:00–17:30; sales ~$1,500 each weekday; Sam, Jordan, and Riley on the roster; no time-off.
+3. Click **Draft week**. Grid shows a multi-employee week at straight time — no overtime line.
 4. Open the **audit drawer**: ops + sales ingested, coverage planned, placed, no `rule_refuse`.
 5. **Download PDF / XLSX / audit.json** is enabled. Click it.
 
@@ -34,9 +34,9 @@ Proof: `issued` exists; downloads share one decision id; replay matches; zero pe
 ## Minute 4–8 — Peak OT: block, approve with reason, or refuse
 
 1. Scenario: **Peak needs OT** (or ask: “Peak Monday / overtime”).
-2. Four inputs: Monday open 08:00–18:30; only Sam available. Draft. Grid shows a 10h Monday. Audit shows `ot_proposed` (s.35 / s.40) with unavoidable evidence.
+2. Four inputs: Monday open 08:00–18:30; Sam on Monday only; Jordan and Riley cover Tue–Fri. Draft. Grid shows a 10h Monday. Audit shows `ot_proposed` (s.35 / s.40) with unavoidable evidence.
 3. Downloads stay **disabled** while OT is `PENDING_APPROVAL`.
-4. Approve requires **name + reason**. Type **Alex Rivera** and a non-empty why (e.g. “Peak Monday: only Sam covers the long open”). Empty reason stays blocked.
+4. Approve requires **name + reason**. Type **Alex Rivera** and a non-empty why (e.g. “Peak Monday: only Sam is rostered for the long open”). Empty reason stays blocked.
 5. Downloads enable. Download again. Replay names who approved and why.
 6. Re-draft the same peak week and click **Refuse OT** instead — composer records the refuse; issue still waits on a clean line.
 

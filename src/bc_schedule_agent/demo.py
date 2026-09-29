@@ -45,6 +45,28 @@ def fixtures_dir() -> Path:
     return Path(__file__).resolve().parents[2] / "fixtures" / "demo"
 
 
+SHEET_FILENAMES: dict[str, str] = {
+    "hours_of_operation": "hours_of_operation.csv",
+    "sales_projections": "sales_projections.csv",
+    "availability": "availability.csv",
+    "time_off": "time_off.csv",
+}
+
+
+def resolve_scenario_id(scenario_id: str) -> str:
+    """Normalize aliases from the prior demo sprint to product scenario ids."""
+    sid = scenario_id.strip().lower()
+    if sid in {"clean_week", "busy", "busy_week"}:
+        return "busy_week_zero_ot"
+    if sid in {"ot_gate", "peak", "overtime"}:
+        return "peak_needs_ot"
+    if sid in {"time_off", "timeoff", "time-off"}:
+        return "time_off_gate"
+    if sid in {"bad_s37", "bad_packet"}:
+        return "bad_s37_packet"
+    return sid
+
+
 def _avail_csv(*rows: str) -> bytes:
     header = "employee,date,start,end\n"
     return (header + "\n".join(rows) + "\n").encode("utf-8")
@@ -148,24 +170,16 @@ class DemoScenario:
 
 
 def build_scenario(scenario_id: str) -> DemoScenario:
-    sid = scenario_id.strip().lower()
-    # Legacy aliases from the prior demo sprint.
-    if sid in {"clean_week", "busy", "busy_week"}:
-        sid = "busy_week_zero_ot"
-    if sid in {"ot_gate", "peak", "overtime"}:
-        sid = "peak_needs_ot"
-    if sid in {"time_off", "timeoff", "time-off"}:
-        sid = "time_off_gate"
-    if sid in {"bad_s37", "bad_packet"}:
-        sid = "bad_s37_packet"
+    """Synthetic generator used only to seed disk via ``ensure_fixture_files``."""
+    sid = resolve_scenario_id(scenario_id)
 
     if sid == "busy_week_zero_ot":
         return DemoScenario(
             scenario_id=sid,
             title="Busy week — zero OT",
             ask=(
-                "Take Mon–Fri hours and steady sales with Sam and Jordan available — "
-                "draft a compliant zero-OT week."
+                "Take Mon–Fri hours and steady sales with Sam, Jordan, and Riley "
+                "available — draft a compliant zero-OT week."
             ),
             hours_of_operation=_ops_csv(
                 "monday,09:00,17:30",
@@ -181,17 +195,31 @@ def build_scenario(scenario_id: str) -> DemoScenario:
                 "thursday,1500",
                 "friday,1500",
             ),
-            availability_raw=_week_avail("sam", "jordan"),
+            # Multi-employee roster so OT-min Pass A can reallocate across people.
+            availability_raw=_week_avail("sam", "jordan", "riley"),
             time_off_raw=_timeoff_csv(),
             decision_id="dec_demo_busy_week_2026w40",
         )
     if sid == "peak_needs_ot":
+        # Multi-employee roster: Sam covers peak Monday only (OT); OT-min Pass A
+        # reallocates Tue–Fri onto Jordan/Riley at straight time.
+        peak_avail = _avail_csv(
+            f"sam,{(WEEK_START + timedelta(days=1)).isoformat()},06:00,22:00",
+            *[
+                f"jordan,{(WEEK_START + timedelta(days=i)).isoformat()},06:00,22:00"
+                for i in range(2, 6)
+            ],
+            *[
+                f"riley,{(WEEK_START + timedelta(days=i)).isoformat()},06:00,22:00"
+                for i in range(2, 6)
+            ],
+        )
         return DemoScenario(
             scenario_id=sid,
             title="Peak needs OT",
             ask=(
-                "Peak Monday: store opens 08:00–18:30 and only Sam is available — "
-                "expect overtime before issue."
+                "Peak Monday: store opens 08:00–18:30; only Sam is on Monday while "
+                "Jordan and Riley cover the rest of the week — expect overtime before issue."
             ),
             hours_of_operation=_ops_csv(
                 "monday,08:00,18:30",
@@ -207,7 +235,7 @@ def build_scenario(scenario_id: str) -> DemoScenario:
                 "thursday,700",
                 "friday,700",
             ),
-            availability_raw=_week_avail("sam"),
+            availability_raw=peak_avail,
             time_off_raw=_timeoff_csv(),
             decision_id="dec_demo_peak_ot_2026w40",
         )
@@ -274,7 +302,10 @@ _ASK_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
         "peak_needs_ot",
     ),
     (
-        re.compile(r"busy|zero[- ]?ot|steady|sam and jordan|mon.?fri", re.I),
+        re.compile(
+            r"busy|zero[- ]?ot|steady|sam and jordan|sam,\s*jordan|riley|mon.?fri",
+            re.I,
+        ),
         "busy_week_zero_ot",
     ),
 )
@@ -301,18 +332,84 @@ def _input_preview(label: str, raw: bytes, *, max_lines: int = 6) -> dict[str, A
     }
 
 
-def ensure_fixture_files(root: Path | None = None) -> Path:
-    """Write synthetic four-input sheets under fixtures/demo/ (idempotent)."""
+def load_scenario_from_disk(
+    scenario_id: str,
+    *,
+    root: Path | None = None,
+) -> DemoScenario:
+    """Load four-input sheets (+ optional packet) from ``fixtures/demo/<id>/``.
+
+    Generators seed disk only through ``ensure_fixture_files``; callers that draft
+    a week must go through this path (or an upload) — not in-memory generator bytes.
+    """
+    ensure_fixture_files(root)
+    sid = resolve_scenario_id(scenario_id)
+    meta = build_scenario(sid)
+    base = (root or fixtures_dir()) / sid
+    if not base.is_dir():
+        raise FileNotFoundError(f"demo fixture directory missing: {base}")
+
+    hours = (base / SHEET_FILENAMES["hours_of_operation"]).read_bytes()
+    sales = (base / SHEET_FILENAMES["sales_projections"]).read_bytes()
+    availability = (base / SHEET_FILENAMES["availability"]).read_bytes()
+    time_off = (base / SHEET_FILENAMES["time_off"]).read_bytes()
+    ask_path = base / "ask.txt"
+    ask = ask_path.read_text(encoding="utf-8").strip() if ask_path.is_file() else meta.ask
+    packets: tuple[dict[str, Any], ...] = ()
+    packet_path = base / "averaging_packet.json"
+    if packet_path.is_file():
+        payload = json.loads(packet_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError(f"averaging_packet.json must be an object: {packet_path}")
+        packets = (payload,)
+    return DemoScenario(
+        scenario_id=sid,
+        title=meta.title,
+        ask=ask,
+        hours_of_operation=hours,
+        sales_projections=sales,
+        availability_raw=availability,
+        time_off_raw=time_off,
+        averaging_packets=packets,
+        decision_id=meta.decision_id,
+    )
+
+
+def ensure_fixture_files(
+    root: Path | None = None,
+    *,
+    force: bool = False,
+) -> Path:
+    """Seed synthetic four-input sheets under fixtures/demo/ when missing.
+
+    Generators write once (or when ``force=True``). After seed, disk is the
+    source of truth for ``run_scenario`` / uploads — not in-memory rebuilds.
+    """
     out = root or fixtures_dir()
     out.mkdir(parents=True, exist_ok=True)
     for sid in SCENARIO_IDS:
         scenario = build_scenario(sid)
         base = out / sid
         base.mkdir(parents=True, exist_ok=True)
-        (base / "hours_of_operation.csv").write_bytes(scenario.hours_of_operation)
-        (base / "sales_projections.csv").write_bytes(scenario.sales_projections)
-        (base / "availability.csv").write_bytes(scenario.availability_raw)
-        (base / "time_off.csv").write_bytes(scenario.time_off_raw)
+        required = [
+            base / SHEET_FILENAMES["hours_of_operation"],
+            base / SHEET_FILENAMES["sales_projections"],
+            base / SHEET_FILENAMES["availability"],
+            base / SHEET_FILENAMES["time_off"],
+            base / "ask.txt",
+        ]
+        if scenario.averaging_packets:
+            required.append(base / "averaging_packet.json")
+        if not force and all(p.is_file() for p in required):
+            continue
+        (base / SHEET_FILENAMES["hours_of_operation"]).write_bytes(
+            scenario.hours_of_operation
+        )
+        (base / SHEET_FILENAMES["sales_projections"]).write_bytes(
+            scenario.sales_projections
+        )
+        (base / SHEET_FILENAMES["availability"]).write_bytes(scenario.availability_raw)
+        (base / SHEET_FILENAMES["time_off"]).write_bytes(scenario.time_off_raw)
         if scenario.averaging_packets:
             (base / "averaging_packet.json").write_text(
                 json.dumps(scenario.averaging_packets[0], indent=2, sort_keys=True)
@@ -333,6 +430,7 @@ class DemoSession:
     result: ComposeResult | None = None
     demand: CoverageDemand | None = None
     demand_payload: dict[str, Any] | None = None
+    demand_override_raw: bytes | None = None
     availability: list[AvailabilityWindow] = field(default_factory=list)
     time_off: list[TimeOffRequest] = field(default_factory=list)
     packets: list[AveragingPacket] = field(default_factory=list)
@@ -347,31 +445,35 @@ class DemoSession:
     last_error: str | None = None
     replay_sentence: str | None = None
     inputs: dict[str, Any] = field(default_factory=dict)
+    fixtures_root: Path | None = None
+    input_source: str = "none"  # disk | upload | none
 
     def reset(self) -> None:
+        root = self.fixtures_root
         self.__dict__.update(DemoSession().__dict__)
+        self.fixtures_root = root
 
-    def run_scenario(self, scenario_id: str, *, ask: str | None = None) -> dict[str, Any]:
-        scenario = build_scenario(scenario_id)
-        self.reset()
-        self.scenario_id = scenario.scenario_id
-        self.ask = ask if ask is not None else scenario.ask
-        self.decision_id = scenario.decision_id
-        self.hours_of_operation = scenario.hours_of_operation
-        self.sales_projections = scenario.sales_projections
-        self.availability_raw = scenario.availability_raw
-        self.time_off_raw = scenario.time_off_raw
-        self.packet_payloads = list(scenario.averaging_packets)
+    def _set_input_previews(self) -> None:
         self.inputs = {
             "hours_of_operation": _input_preview(
-                "Hours of operations", scenario.hours_of_operation
+                "Hours of operations", self.hours_of_operation or b""
             ),
             "sales_projections": _input_preview(
-                "Sales projections", scenario.sales_projections
+                "Sales projections", self.sales_projections or b""
             ),
-            "availability": _input_preview("Availability", scenario.availability_raw),
-            "time_off": _input_preview("Time-off requests", scenario.time_off_raw),
+            "availability": _input_preview(
+                "Availability", self.availability_raw or b""
+            ),
+            "time_off": _input_preview(
+                "Time-off requests", self.time_off_raw or b""
+            ),
         }
+
+    def _compose_from_session_inputs(self) -> dict[str, Any]:
+        if not self.hours_of_operation or not self.sales_projections:
+            raise RuntimeError("hours_of_operation and sales_projections required")
+        if not self.availability_raw:
+            raise RuntimeError("availability required")
 
         self.chain = AuditChain()
         self.availability = parse_availability_sheet(
@@ -386,13 +488,21 @@ class DemoSession:
             parse_averaging_packet(payload, chain=self.chain)
             for payload in self.packet_payloads
         ]
-        self.demand = plan_coverage(
-            self.hours_of_operation,
-            self.sales_projections,
-            WEEK_START,
-            chain=self.chain,
-        )
+        if self.demand_override_raw is not None:
+            from bc_schedule_agent.ingest import parse_coverage_demand
+
+            self.demand = parse_coverage_demand(
+                self.demand_override_raw, chain=self.chain
+            )
+        else:
+            self.demand = plan_coverage(
+                self.hours_of_operation,
+                self.sales_projections,
+                WEEK_START,
+                chain=self.chain,
+            )
         self.demand_payload = demand_to_payload(self.demand)
+        self._set_input_previews()
 
         self.result = compose_week(
             self.demand,
@@ -405,6 +515,80 @@ class DemoSession:
         self.last_error = None
         self.exhibit_paths = {}
         self.replay_sentence = None
+        return self.to_state()
+
+    def run_scenario(self, scenario_id: str, *, ask: str | None = None) -> dict[str, Any]:
+        """Draft a week from disk fixtures (generators seed only via ensure_fixture_files)."""
+        root = self.fixtures_root or fixtures_dir()
+        scenario = load_scenario_from_disk(scenario_id, root=root)
+        self.reset()
+        self.scenario_id = scenario.scenario_id
+        self.ask = ask if ask is not None else scenario.ask
+        self.decision_id = scenario.decision_id
+        self.hours_of_operation = scenario.hours_of_operation
+        self.sales_projections = scenario.sales_projections
+        self.availability_raw = scenario.availability_raw
+        self.time_off_raw = scenario.time_off_raw
+        self.packet_payloads = list(scenario.averaging_packets)
+        self.demand_override_raw = None
+        self.input_source = "disk"
+        return self._compose_from_session_inputs()
+
+    def upload_sheet(self, sheet: str, raw: bytes) -> dict[str, Any]:
+        """Replace one input sheet (or optional packet/demand) and recompose when ready."""
+        key = sheet.strip().lower().replace("-", "_")
+        aliases = {
+            "hours": "hours_of_operation",
+            "hours_of_ops": "hours_of_operation",
+            "ops": "hours_of_operation",
+            "sales": "sales_projections",
+            "avail": "availability",
+            "timeoff": "time_off",
+            "packet": "averaging_packet",
+            "averaging": "averaging_packet",
+        }
+        key = aliases.get(key, key)
+
+        if key == "hours_of_operation":
+            self.hours_of_operation = raw
+        elif key == "sales_projections":
+            self.sales_projections = raw
+        elif key == "availability":
+            self.availability_raw = raw
+        elif key == "time_off":
+            self.time_off_raw = raw
+        elif key == "averaging_packet":
+            payload = json.loads(raw.decode("utf-8"))
+            if isinstance(payload, list):
+                if not all(isinstance(p, dict) for p in payload):
+                    raise ValueError("averaging_packet list entries must be objects")
+                self.packet_payloads = list(payload)
+            elif isinstance(payload, dict):
+                self.packet_payloads = [payload]
+            else:
+                raise ValueError("averaging_packet must be an object or list")
+        elif key == "demand":
+            self.demand_override_raw = raw
+        else:
+            raise ValueError(
+                "unknown sheet; expected hours_of_operation|sales_projections|"
+                "availability|time_off|averaging_packet|demand"
+            )
+
+        self.input_source = "upload"
+        self._set_input_previews()
+        if (
+            self.hours_of_operation
+            and self.sales_projections
+            and self.availability_raw
+        ):
+            if self.time_off_raw is None:
+                self.time_off_raw = _timeoff_csv()
+            if not self.scenario_id:
+                self.scenario_id = "upload"
+            if not self.decision_id:
+                self.decision_id = "dec_demo_upload"
+            return self._compose_from_session_inputs()
         return self.to_state()
 
     def run_ask(self, ask: str) -> dict[str, Any]:
@@ -539,11 +723,14 @@ class DemoSession:
             if self.result is not None and self.result.placed
             else None
         )
+        roster = sorted({p["employee"] for p in placed_rows}) if placed_rows else []
         return {
             "scenario_id": self.scenario_id,
             "ask": self.ask,
             "week_start": WEEK_START.isoformat(),
             "week_days": week_days,
+            "input_source": self.input_source,
+            "roster": roster,
             "inputs": dict(self.inputs),
             "placed": placed_rows,
             "ot_proposals": ot_rows,
@@ -628,7 +815,7 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
     except ExportBlocked:
         pass
     assert blocked
-    reason = "Peak Monday: only Sam covers the long open"
+    reason = "Peak Monday: only Sam is rostered for the long open"
     state = session.approve_pending_ot(human_name="Alex Rivera", reason=reason)
     assert state["pending_ot_count"] == 0
     assert state["download_enabled"] is True

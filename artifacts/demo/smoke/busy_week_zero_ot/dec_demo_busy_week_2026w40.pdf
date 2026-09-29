@@ -28,7 +28,7 @@ BT
 1 0 0 1 40 571 Tm () Tj
 1 0 0 1 40 560 Tm (Audit appendix \(same chain as audit.json\):) Tj
 1 0 0 1 40 549 Tm (  - agent ingested availability \(hash) Tj
-1 0 0 1 40 538 Tm (sha256:723535526eaf31fe1ea3a0a07a39815618cc4e574473f879671078f88d528e89\).) Tj
+1 0 0 1 40 538 Tm (sha256:17cb3f7137a27005eaee05eccbe5800715ee521957032a46bff561d042afddaa\).) Tj
 1 0 0 1 40 527 Tm (  - agent ingested time_off \(hash) Tj
 1 0 0 1 40 516 Tm (sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243\).) Tj
 1 0 0 1 40 505 Tm (  - agent ingested hours_of_operation \(hash) Tj

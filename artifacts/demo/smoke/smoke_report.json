@@ -12,9 +12,9 @@
       "download_enabled": true,
       "id": "busy_week_zero_ot",
       "paths": {
-        "audit_json": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/busy_week_zero_ot/audit.json",
-        "pdf": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/busy_week_zero_ot/dec_demo_busy_week_2026w40.pdf",
-        "xlsx": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/busy_week_zero_ot/dec_demo_busy_week_2026w40.xlsx"
+        "audit_json": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_6_real-ingest/artifacts/demo/smoke/busy_week_zero_ot/audit.json",
+        "pdf": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_6_real-ingest/artifacts/demo/smoke/busy_week_zero_ot/dec_demo_busy_week_2026w40.pdf",
+        "xlsx": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_6_real-ingest/artifacts/demo/smoke/busy_week_zero_ot/dec_demo_busy_week_2026w40.xlsx"
       },
       "replay": "Replay matched schedule_hash=sha256:19cc20045563e7a9f22967cf49e2b25f3290b19a60d2e0138310258e45b2e05c and gate_snapshot_hash=sha256:46b083fc8a93a499bcf4916e499c92e3ccca01f2261fae70e24a704872f3efa3 for decision dec_demo_busy_week_2026w40 (10 placed, 0 refuses, 0 pending OT)."
     },
@@ -22,15 +22,15 @@
       "approved_by": "Alex Rivera",
       "id": "peak_needs_ot",
       "paths": {
-        "audit_json": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/peak_needs_ot/audit.json",
-        "pdf": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/peak_needs_ot/dec_demo_peak_ot_2026w40.pdf",
-        "xlsx": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/peak_needs_ot/dec_demo_peak_ot_2026w40.xlsx"
+        "audit_json": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_6_real-ingest/artifacts/demo/smoke/peak_needs_ot/audit.json",
+        "pdf": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_6_real-ingest/artifacts/demo/smoke/peak_needs_ot/dec_demo_peak_ot_2026w40.pdf",
+        "xlsx": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_6_real-ingest/artifacts/demo/smoke/peak_needs_ot/dec_demo_peak_ot_2026w40.xlsx"
       },
-      "reason": "Peak Monday: only Sam covers the long open",
-      "replay": "Replay matched schedule_hash=sha256:f0c562e482ec3055d04a9e9701537362921e393dec7a5f0dff500ed8348660d2 and gate_snapshot_hash=sha256:e37f4815034b1e01afd096b5ace1a07f2fd4bc84321dd53bccebd6ff00ff6897 for decision dec_demo_peak_ot_2026w40 (5 placed, 0 refuses, 0 pending OT). Who approved OT and why is on the chain: Alex Rivera approved OT (Peak Monday: only Sam covers the long open)."
+      "reason": "Peak Monday: only Sam is rostered for the long open",
+      "replay": "Replay matched schedule_hash=sha256:8742cdc0edb082f05c08c5e2774d828c4551f9bbb3c19f8637f24df780b81bf8 and gate_snapshot_hash=sha256:ae9ff31c58e356b4cfb079f060281f93a438974956e9979b0b42d098876b8cab for decision dec_demo_peak_ot_2026w40 (5 placed, 0 refuses, 0 pending OT). Who approved OT and why is on the chain: Alex Rivera approved OT (Peak Monday: only Sam is rostered for the long open)."
     },
     {
-      "audit_hit": "human:Alex Rivera refused overtime ot_591550f3ba (returned to composer).",
+      "audit_hit": "human:Alex Rivera refused overtime ot_c71df48930 (returned to composer).",
       "id": "peak_needs_ot_refuse",
       "refused_by": "Alex Rivera"
     },

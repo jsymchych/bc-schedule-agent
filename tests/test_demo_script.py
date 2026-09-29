@@ -55,10 +55,12 @@ def test_busy_week_zero_ot_downloads_and_replay(tmp_path: Path) -> None:
     state = session.run_scenario("busy_week_zero_ot")
     assert state["download_enabled"] is True
     assert state["pending_ot_count"] == 0
+    assert state["input_source"] == "disk"
     assert state["inputs"]["hours_of_operation"]["rows"] >= 1
     assert state["inputs"]["sales_projections"]["rows"] >= 1
     assert state["inputs"]["availability"]["rows"] >= 1
     assert len(state["placed"]) >= 2
+    assert len(state["roster"]) >= 2
     state = session.write_downloads(tmp_path / "busy")
     assert state["replay_sentence"]
     assert Path(state["exhibit_paths"]["pdf"]).is_file()
@@ -71,11 +73,15 @@ def test_peak_needs_ot_blocks_then_human_approve_with_reason(tmp_path: Path) -> 
     state = session.run_scenario("peak_needs_ot")
     assert state["pending_ot_count"] >= 1
     assert state["download_enabled"] is False
+    assert state["input_source"] == "disk"
+    # Multi-employee roster: Jordan/Riley cover Tue–Fri; Monday still needs Sam OT.
+    assert {"sam", "jordan", "riley"} & set(state["roster"])
+    assert "sam" in state["roster"]
     with pytest.raises(ExportBlocked):
         session.write_downloads(tmp_path / "blocked")
     with pytest.raises(GateError, match="non-empty reason"):
         session.approve_pending_ot(human_name="Alex Rivera", reason="")
-    reason = "Peak Monday: only Sam covers the long open"
+    reason = "Peak Monday: only Sam is rostered for the long open"
     state = session.approve_pending_ot(human_name="Alex Rivera", reason=reason)
     assert state["pending_ot_count"] == 0
     assert state["download_enabled"] is True
@@ -151,6 +157,14 @@ def test_demo_app_page_serves() -> None:
     assert "audit.json" in PAGE
     assert "browserDownload" in PAGE
     assert "/api/exhibit/pdf" in PAGE
+    from bc_schedule_agent.demo_app import UPLOAD_PATHS
+
+    assert "/api/upload/hours_of_operation" in UPLOAD_PATHS
+    assert "/api/upload/sales_projections" in UPLOAD_PATHS
+    assert "/api/upload/availability" in UPLOAD_PATHS
+    assert "/api/upload/time_off" in UPLOAD_PATHS
+    assert "/api/upload/averaging_packet" in UPLOAD_PATHS
+    assert "/api/upload/demand" in UPLOAD_PATHS
 
 
 def test_exhibit_get_serves_after_download(tmp_path: Path) -> None:
