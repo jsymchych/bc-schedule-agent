@@ -73,11 +73,15 @@ def approve_ot(
     proposal: OvertimeProposal,
     *,
     human_name: str,
+    reason: str,
     chain: AuditChain,
     timestamp: str | None = None,
 ) -> OvertimeProposal:
-    """Named human approves a PENDING_APPROVAL OT / rest line."""
+    """Named human approves a PENDING_APPROVAL OT / rest line with a non-empty reason."""
     name = _require_human_name(human_name)
+    why = (reason or "").strip()
+    if not why:
+        raise GateError("approve_ot requires a non-empty reason")
     if proposal.status != "PENDING_APPROVAL":
         raise GateError(
             f"OT {proposal.proposal_id} is {proposal.status}, expected PENDING_APPROVAL"
@@ -87,6 +91,7 @@ def approve_ot(
     proposal.status = "APPROVED"
     proposal.decided_by = name
     proposal.decided_at = ts
+    proposal.reason = why
     chain.append(
         kind="ot_approved",
         actor=f"human:{name}",
@@ -104,6 +109,7 @@ def approve_ot(
             "status": "APPROVED",
             "human_name": name,
             "timestamp": ts,
+            "reason": why,
         },
         timestamp=ts,
     )

@@ -17,6 +17,7 @@ AUDIT_KINDS = frozenset(
         "rule_refuse",
         "repair",
         "ot_proposed",
+        "ot_unavoidable",
         "ot_approved",
         "ot_refused",
         "timeoff_decided",

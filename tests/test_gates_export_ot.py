@@ -207,16 +207,19 @@ def test_export_blocked_until_named_human_approves_ot() -> None:
     approve_ot(
         proposal,
         human_name="Sam Chen",
+        reason="Peak Saturday: only Sam can cover the late close",
         chain=chain,
         timestamp="2026-09-29T15:00:00Z",
     )
     assert proposal.status == "APPROVED"
     assert proposal.decided_by == "Sam Chen"
+    assert proposal.reason == "Peak Saturday: only Sam can cover the late close"
     approved = [e for e in chain.events if e.kind == "ot_approved"]
     assert len(approved) == 1
     assert approved[0].actor == "human:Sam Chen"
     assert approved[0].evidence["timestamp"] == "2026-09-29T15:00:00Z"
     assert approved[0].evidence["human_name"] == "Sam Chen"
+    assert approved[0].evidence["reason"] == proposal.reason
 
     issued = issue_schedule(
         result,
@@ -276,6 +279,11 @@ def test_agent_has_no_approve_action() -> None:
     with pytest.raises(GateError, match="agent has no approve action"):
         agent_approve_ot(proposal, chain=chain)
     with pytest.raises(GateError, match="agent has no approve action"):
-        approve_ot(proposal, human_name="agent", chain=chain)
+        approve_ot(
+            proposal,
+            human_name="agent",
+            reason="should not matter",
+            chain=chain,
+        )
     assert proposal.status == "PENDING_APPROVAL"
     assert not any(e.kind == "ot_approved" for e in chain.events)

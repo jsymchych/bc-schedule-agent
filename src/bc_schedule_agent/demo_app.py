@@ -270,7 +270,10 @@ $("btn-run").onclick = async () => {
 
 $("btn-approve").onclick = async () => {
   try {
-    render(await api("/api/approve-ot", { human_name: "Alex Rivera" }));
+    render(await api("/api/approve-ot", {
+      human_name: "Alex Rivera",
+      reason: "Peak coverage: named human accepts unavoidable OT",
+    }));
   } catch (e) {
     $("status").textContent = String(e.message || e);
     $("status").className = "status warn";
@@ -426,7 +429,14 @@ class DemoHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/approve-ot":
                 name = str(body.get("human_name") or "Alex Rivera")
-                self._json(200, SESSION.approve_pending_ot(human_name=name))
+                reason = str(
+                    body.get("reason")
+                    or "Peak coverage: named human accepts unavoidable OT"
+                )
+                self._json(
+                    200,
+                    SESSION.approve_pending_ot(human_name=name, reason=reason),
+                )
                 return
             if path == "/api/refuse-ot":
                 name = str(body.get("human_name") or "Alex Rivera")

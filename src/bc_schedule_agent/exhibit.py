@@ -112,6 +112,12 @@ def event_to_prose(event: AuditEvent) -> str:
             f"(s.{ev.get('section')})."
         )
     if kind == "ot_approved":
+        reason = ev.get("reason") or ""
+        if reason:
+            return (
+                f"{actor} approved overtime {subj.get('proposal_id')} "
+                f"at {ev.get('timestamp')}: {reason}."
+            )
         return (
             f"{actor} approved overtime {subj.get('proposal_id')} "
             f"at {ev.get('timestamp')}."
@@ -120,6 +126,16 @@ def event_to_prose(event: AuditEvent) -> str:
         return (
             f"{actor} refused overtime {subj.get('proposal_id')} "
             f"(returned to composer)."
+        )
+    if kind == "ot_unavoidable":
+        return (
+            f"{actor} marked overtime unavoidable for {subj.get('shift_id')} "
+            f"({ev.get('reason_unavoidable', 'residual coverage')})."
+        )
+    if kind == "repair":
+        return (
+            f"{actor} repaired placement for {subj.get('shift_id')}: "
+            f"{ev.get('detail', 'reassigned')}."
         )
     if kind == "timeoff_decided":
         return (

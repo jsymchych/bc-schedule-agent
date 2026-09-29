@@ -227,6 +227,7 @@ class OvertimeProposal:
     proposal_id: str = field(default_factory=lambda: f"ot_{uuid4().hex[:10]}")
     decided_by: str | None = None
     decided_at: str | None = None
+    reason: str | None = None
 
 
 @dataclass

@@ -310,7 +310,9 @@ class DemoSession:
     def run_ask(self, ask: str) -> dict[str, Any]:
         return self.run_scenario(resolve_ask_to_scenario(ask), ask=ask)
 
-    def approve_pending_ot(self, *, human_name: str) -> dict[str, Any]:
+    def approve_pending_ot(
+        self, *, human_name: str, reason: str = "Demo approve: coverage required"
+    ) -> dict[str, Any]:
         if self.result is None:
             raise RuntimeError("no draft loaded")
         pending = pending_ot_lines(self.result.ot_proposals)
@@ -320,6 +322,7 @@ class DemoSession:
             approve_ot(
                 proposal,
                 human_name=human_name,
+                reason=reason,
                 chain=self.chain,
                 timestamp="2026-09-29T19:00:00Z",
             )
