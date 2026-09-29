@@ -6,3 +6,5 @@ __pycache__/
 .pytest_cache/
 # Rolling week shelf — runtime only; survives restart, not versioned.
 artifacts/history/
+# Named parameter shelf — runtime only; survives restart, not versioned.
+artifacts/parameters/

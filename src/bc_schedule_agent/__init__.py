@@ -49,6 +49,12 @@ from bc_schedule_agent.replay import (
     replay,
 )
 from bc_schedule_agent.ruleset import Ruleset, load_ruleset, ruleset_hash
+from bc_schedule_agent.shelf import (
+    ParameterShelf,
+    ParameterShelfStore,
+    build_parameter_shelf,
+    enforce_shelf_authority,
+)
 from bc_schedule_agent.staffing import StaffingCurve, load_staffing
 
 __all__ = [
@@ -60,6 +66,8 @@ __all__ = [
     "ExportBlocked",
     "GateError",
     "LEGAL_POSTURE",
+    "ParameterShelf",
+    "ParameterShelfStore",
     "ReplayError",
     "ReplayInputs",
     "ReplayMismatch",
@@ -71,12 +79,14 @@ __all__ = [
     "agent_approve_ot",
     "approve_ot",
     "build_gate_snapshot",
+    "build_parameter_shelf",
     "build_pdf_exhibit",
     "build_xlsx_exhibit",
     "check_averaging_packet",
     "compose_week",
     "decide_time_off",
     "empty_gate_snapshot",
+    "enforce_shelf_authority",
     "gate_snapshot_hash",
     "issue_schedule",
     "issued_gate_snapshot",

@@ -1241,14 +1241,26 @@ def compose_week(
     chain: AuditChain,
     averaging_packets: list[AveragingPacket] | None = None,
     prefer_zero_ot: bool = False,
+    parameter_shelf: Any | None = None,
+    observed_shelf_hashes: dict[str, str | None] | None = None,
 ) -> ComposeResult:
     """Place demand shifts. Closed-world availability. Averaging only after packet_accepted.
 
     When ``prefer_zero_ot`` is True, Pass A places straight-time only (alternate
     employees / bounded split); Pass B proposes OT only for residual coverage
     with ``reason_unavoidable`` evidence.
+
+    When ``parameter_shelf`` is bound, draft input hashes must match — shelf is
+    hard authority (availability, approved time-off, demand). Mismatch hard-refuses.
     """
     result = ComposeResult()
+    if parameter_shelf is not None:
+        from bc_schedule_agent.shelf import enforce_shelf_authority
+
+        observed = observed_shelf_hashes or {}
+        if not enforce_shelf_authority(parameter_shelf, observed, chain=chain):
+            return result
+
     packets = averaging_packets or []
     accepted: dict[str, AveragingPacket] = {}
 

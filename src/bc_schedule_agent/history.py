@@ -43,7 +43,7 @@ class HistoryRow:
     exhibit_paths: dict[str, str] = field(default_factory=dict)
     schedule_hash: str | None = None
     gate_snapshot_hash: str | None = None
-    # Placeholders for later waves (parameter shelf, replay envelope, priors).
+    # Placeholders for later waves (replay envelope, composition priors).
     parameter_shelf_id: str | None = None
     history_prior_week_starts: list[str] = field(default_factory=list)
     issued_at: str | None = None

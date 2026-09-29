@@ -643,11 +643,13 @@ def write_exhibits(
     timestamp: str | None = None,
     history_root: Path | None = None,
     history_max_weeks: int | None = None,
+    parameter_shelf_id: str | None = None,
 ) -> ExhibitBundle:
     """Issue the schedule and write PDF + XLSX + audit.json under out_dir.
 
     When history_root is set, append the issued week to the rolling history shelf.
     Draft-only compose paths never call this — history stays issue-only.
+    Copies parameter_shelf_id onto the week record when provided.
     """
     if any(e.kind == "rule_refuse" for e in chain.events):
         raise ExportBlocked("export blocked: rule_refuse present on chain")
@@ -702,6 +704,7 @@ def write_exhibits(
             },
             schedule_hash=issue.schedule_hash,
             gate_snapshot_hash=gate_snapshot_hash(issue.gate_snapshot),
+            parameter_shelf_id=parameter_shelf_id,
             issued_at=timestamp,
         )
 

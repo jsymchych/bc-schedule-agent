@@ -20,6 +20,13 @@ from bc_schedule_agent.ingest import (
     parse_averaging_packet,
     parse_time_off_sheet,
 )
+from bc_schedule_agent.shelf import (
+    ParameterShelf,
+    ParameterShelfStore,
+    build_parameter_shelf,
+    default_shelf_root,
+    observed_input_hashes,
+)
 from bc_schedule_agent.models import (
     AveragingPacket,
     AvailabilityWindow,
@@ -472,11 +479,15 @@ class DemoSession:
     inputs: dict[str, Any] = field(default_factory=dict)
     fixtures_root: Path | None = None
     input_source: str = "none"  # disk | upload | none
+    parameter_shelf: ParameterShelf | None = None
+    shelf_root: Path | None = None
 
     def reset(self) -> None:
         root = self.fixtures_root
+        shelf_root = self.shelf_root
         self.__dict__.update(DemoSession().__dict__)
         self.fixtures_root = root
+        self.shelf_root = shelf_root
 
     def _set_input_previews(self) -> None:
         self.inputs = {
@@ -529,6 +540,27 @@ class DemoSession:
         self.demand_payload = demand_to_payload(self.demand)
         self._set_input_previews()
 
+        self.parameter_shelf = build_parameter_shelf(
+            hours_of_operation=self.hours_of_operation,
+            sales_projections=self.sales_projections,
+            availability_raw=self.availability_raw,
+            time_off_raw=self.time_off_raw,
+            averaging_packets=list(self.packet_payloads) or None,
+            demand_override_raw=self.demand_override_raw,
+            availability=self.availability,
+        )
+        ParameterShelfStore(self.shelf_root or default_shelf_root()).save(
+            self.parameter_shelf
+        )
+        observed = observed_input_hashes(
+            hours_of_operation=self.hours_of_operation,
+            sales_projections=self.sales_projections,
+            availability_raw=self.availability_raw,
+            time_off_raw=self.time_off_raw,
+            averaging_packets=list(self.packet_payloads) or None,
+            demand_override_raw=self.demand_override_raw,
+        )
+
         self.result = compose_week(
             self.demand,
             availability=self.availability,
@@ -536,6 +568,8 @@ class DemoSession:
             chain=self.chain,
             averaging_packets=self.packets or None,
             prefer_zero_ot=True,
+            parameter_shelf=self.parameter_shelf,
+            observed_shelf_hashes=observed,
         )
         self.last_error = None
         self.exhibit_paths = {}
@@ -684,6 +718,11 @@ class DemoSession:
             out_dir=target,
             timestamp="2026-09-29T19:05:00Z",
             history_root=default_history_root(),
+            parameter_shelf_id=(
+                self.parameter_shelf.parameter_shelf_id
+                if self.parameter_shelf is not None
+                else None
+            ),
         )
         self.exhibit_dir = target
         self.exhibit_paths = {
@@ -750,6 +789,14 @@ class DemoSession:
             else None
         )
         roster = sorted({p["employee"] for p in placed_rows}) if placed_rows else []
+        shelf_state: dict[str, Any] | None = None
+        if self.parameter_shelf is not None:
+            shelf_state = {
+                "parameter_shelf_id": self.parameter_shelf.parameter_shelf_id,
+                "staffing_version": self.parameter_shelf.staffing_version,
+                "derived_roster": list(self.parameter_shelf.derived_roster),
+                "hashes": self.parameter_shelf.content_hashes(),
+            }
         return {
             "scenario_id": self.scenario_id,
             "ask": self.ask,
@@ -757,6 +804,7 @@ class DemoSession:
             "week_days": week_days,
             "input_source": self.input_source,
             "roster": roster,
+            "parameter_shelf": shelf_state,
             "inputs": dict(self.inputs),
             "placed": placed_rows,
             "ot_proposals": ot_rows,
