@@ -27,9 +27,9 @@ python3 -c "from bc_schedule_agent.demo import run_smoke_script; print(run_smoke
 2. Show the **four inputs**: hours open Mon–Fri 09:00–17:30; sales ~$1,500 each weekday; Sam, Jordan, and Riley on the roster; no time-off.
 3. Click **Draft week**. Grid shows a multi-employee week at straight time — no overtime line.
 4. Open the **audit drawer**: ops + sales ingested, coverage planned, placed, no `rule_refuse`.
-5. **Download PDF / XLSX / audit.json** is enabled. Click it.
+5. Three download controls are enabled: **PDF**, **XLSX**, and **audit.json**. Click **PDF** first — that issues the week once, then saves only the PDF. Click **XLSX** next, then **audit.json**. Each click fetches only that file; the second and third clicks do not re-issue.
 
-Proof: `issued` exists; downloads share one decision id; replay matches; zero pending OT.
+Proof: `issued` exists once; all three exhibits share one decision id; replay matches; zero pending OT.
 
 ## Minute 4–8 — Peak OT: block, approve with reason, or refuse
 
@@ -37,7 +37,7 @@ Proof: `issued` exists; downloads share one decision id; replay matches; zero pe
 2. Four inputs: Monday open 08:00–18:30; Sam on Monday only; Jordan and Riley cover Tue–Fri. Draft. Grid shows a 10h Monday. Audit shows `ot_proposed` (s.35 / s.40) with unavoidable evidence.
 3. Downloads stay **disabled** while OT is `PENDING_APPROVAL`.
 4. Approve requires **name + reason**. Type **Alex Rivera** and a non-empty why (e.g. “Peak Monday: only Sam is rostered for the long open”). Empty reason stays blocked.
-5. Downloads enable. Download again. Replay names who approved and why.
+5. Downloads enable. Walk **PDF**, then **XLSX**, then **audit.json** as separate choices (same issue-once rule). Replay names who approved and why.
 6. Re-draft the same peak week and click **Refuse OT** instead — composer records the refuse; issue still waits on a clean line.
 
 Proof: the agent cannot issue overtime silently; a named human, timestamp, and reason sit on the line.
@@ -60,7 +60,7 @@ Proof: incomplete averaging packets do not change the overtime regime.
 
 ## Minute 14–15 — Close
 
-Read the last OT approve sentence aloud. Close on the product: **who approved OT and why is on the chain.** PDF, XLSX, and `audit.json` are exhibits of that record.
+Read the last OT approve sentence aloud. Close on the product: **who approved OT and why is on the chain.** Choose the exhibit type you need — PDF to talk, XLSX to mark up, `audit.json` to prove. No “Download all” primary.
 
 ## Headless checklist (CI / no browser)
 

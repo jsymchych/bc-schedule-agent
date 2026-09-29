@@ -26,6 +26,15 @@ def test_demo_md_on_disk() -> None:
     assert "fixture demand" not in text.lower()
     assert "four inputs" in text.lower()
     assert "who approved OT and why is on the chain" in text
+    # Wave B: choose-type narration — not a bundled primary click
+    assert "Download PDF / XLSX / audit.json" not in text
+    assert "Click **Download all**" not in text
+    assert "No “Download all” primary" in text
+    assert "Click **PDF** first" in text
+    assert "Click **XLSX** next" in text
+    assert "**audit.json**" in text
+    assert "do not re-issue" in text
+    assert "Walk **PDF**, then **XLSX**, then **audit.json**" in text
 
 
 def test_resolve_ask_maps_to_scenarios() -> None:
@@ -217,3 +226,66 @@ def test_exhibit_get_serves_after_download(tmp_path: Path) -> None:
     DemoHandler._serve_exhibit(fake_audit, "audit.json")  # type: ignore[arg-type]
     assert fake_audit.code == 200
     assert "application/json" in fake_audit.headers["Content-Type"]
+
+
+def test_each_type_fetches_only_its_path_second_click_no_reissue(tmp_path: Path) -> None:
+    """After issue-once, each type control serves only its path; later types do not re-issue."""
+    from bc_schedule_agent.demo import DemoSession
+    from bc_schedule_agent.demo_app import DemoHandler, PAGE, SESSION
+
+    session = DemoSession()
+    session.run_scenario("busy_week_zero_ot")
+    session.write_downloads(tmp_path / "per_type")
+    issued_before = sum(1 for e in session.chain.events if e.kind == "issued")
+    assert issued_before == 1
+    SESSION.exhibit_paths = dict(session.exhibit_paths)
+    SESSION.result = session.result
+    SESSION.chain = session.chain
+
+    class _Fake:
+        def __init__(self) -> None:
+            self.headers: dict[str, str] = {}
+            self.wfile = __import__("io").BytesIO()
+            self.code = 0
+
+        def send_response(self, code: int) -> None:
+            self.code = code
+
+        def send_header(self, k: str, v: str) -> None:
+            self.headers[k] = v
+
+        def end_headers(self) -> None:
+            pass
+
+    expectations = [
+        ("pdf", "application/pdf", b"%PDF"),
+        (
+            "xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            b"PK",
+        ),
+        ("audit.json", "application/json", b"{"),
+    ]
+    for kind, ctype, magic in expectations:
+        fake = _Fake()
+        DemoHandler._serve_exhibit(fake, kind)  # type: ignore[arg-type]
+        assert fake.code == 200, kind
+        assert ctype in fake.headers["Content-Type"], kind
+        body = fake.wfile.getvalue()
+        assert body.startswith(magic), kind
+        # One path per click: disposition names that file only
+        cd = fake.headers.get("Content-Disposition", "")
+        assert "filename=" in cd
+        if kind == "pdf":
+            assert ".pdf" in cd and ".xlsx" not in cd and "audit" not in cd
+        elif kind == "xlsx":
+            assert ".xlsx" in cd and ".pdf" not in cd and "audit" not in cd
+        else:
+            assert "audit" in cd and ".pdf" not in cd and ".xlsx" not in cd
+
+    # Second/third type clicks only GET exhibits — issued count stays one
+    issued_after = sum(1 for e in SESSION.chain.events if e.kind == "issued")
+    assert issued_after == 1
+    assert "if (!exhibitsIssued(state))" in PAGE
+    assert 'browserDownload("/api/exhibit/" + kind)' in PAGE
+    assert "Promise.all" not in PAGE
