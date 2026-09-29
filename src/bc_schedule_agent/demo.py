@@ -14,6 +14,7 @@ from bc_schedule_agent.composer import compose_week
 from bc_schedule_agent.exhibit import event_to_prose, write_exhibits
 from bc_schedule_agent.export import ExportBlocked, pending_ot_lines, schedule_hash
 from bc_schedule_agent.gates import approve_ot, refuse_ot
+from bc_schedule_agent.history import default_history_root
 from bc_schedule_agent.ingest import (
     parse_availability_sheet,
     parse_averaging_packet,
@@ -682,6 +683,7 @@ class DemoSession:
             week_start=self.demand.week_start,
             out_dir=target,
             timestamp="2026-09-29T19:05:00Z",
+            history_root=default_history_root(),
         )
         self.exhibit_dir = target
         self.exhibit_paths = {

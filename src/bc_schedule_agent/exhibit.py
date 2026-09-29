@@ -18,9 +18,11 @@ from bc_schedule_agent.export import (
     ExportBlocked,
     IssueResult,
     assert_no_pending_ot,
+    gate_snapshot_hash,
     issue_schedule,
     schedule_hash,
 )
+from bc_schedule_agent.history import WeekHistoryStore
 from bc_schedule_agent.models import ComposeResult, OvertimeProposal, PlacedShift
 
 
@@ -639,8 +641,14 @@ def write_exhibits(
     out_dir: Path,
     actor: str = "agent",
     timestamp: str | None = None,
+    history_root: Path | None = None,
+    history_max_weeks: int | None = None,
 ) -> ExhibitBundle:
-    """Issue the schedule and write PDF + XLSX + audit.json under out_dir."""
+    """Issue the schedule and write PDF + XLSX + audit.json under out_dir.
+
+    When history_root is set, append the issued week to the rolling history shelf.
+    Draft-only compose paths never call this — history stays issue-only.
+    """
     if any(e.kind == "rule_refuse" for e in chain.events):
         raise ExportBlocked("export blocked: rule_refuse present on chain")
     assert_no_pending_ot(result.ot_proposals)
@@ -678,6 +686,24 @@ def write_exhibits(
     audit_path.write_text(
         json.dumps(audit, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+
+    if history_root is not None:
+        kwargs: dict[str, Any] = {"root": Path(history_root)}
+        if history_max_weeks is not None:
+            kwargs["history_max_weeks"] = history_max_weeks
+        store = WeekHistoryStore(**kwargs)
+        store.record_issue(
+            week_start=week_start,
+            decision_id=decision_id,
+            exhibit_paths={
+                "pdf": str(pdf_path),
+                "xlsx": str(xlsx_path),
+                "audit_json": str(audit_path),
+            },
+            schedule_hash=issue.schedule_hash,
+            gate_snapshot_hash=gate_snapshot_hash(issue.gate_snapshot),
+            issued_at=timestamp,
+        )
 
     return ExhibitBundle(
         model=model,
