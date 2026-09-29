@@ -21,6 +21,7 @@ from bc_schedule_agent.models import (
     sunday_of,
 )
 from bc_schedule_agent.packet import accept_or_reject_packet
+from bc_schedule_agent.priors import HistoryPriors, order_candidates
 
 
 def hours_between_times(start: time, end: time) -> float:
@@ -853,9 +854,17 @@ def _try_pass_a_full(
     availability: list[AvailabilityWindow],
     time_off: list[TimeOffRequest],
     roster: list[str],
+    history_priors: HistoryPriors | None = None,
 ) -> bool:
     """Pass A: place full shift on preferred or alternate without OT."""
-    ordered = [shift.employee] + [e for e in roster if e != shift.employee]
+    ordered = order_candidates(
+        shift.employee,
+        roster,
+        on=shift.date,
+        start=shift.start,
+        end=shift.end,
+        history_priors=history_priors,
+    )
     for employee in ordered:
         if not _eligible_employee(
             employee,
@@ -897,13 +906,21 @@ def _try_pass_a_split(
     availability: list[AvailabilityWindow],
     time_off: list[TimeOffRequest],
     roster: list[str],
+    history_priors: HistoryPriors | None = None,
 ) -> bool:
     """Pass A bounded split: first employee takes ≤8h residual, second takes remainder."""
     span_minutes = int(round(hours_between_times(shift.start, shift.end) * 60))
     if span_minutes < 240:  # need room for two ≥2h reporting shifts
         return False
 
-    ordered = [shift.employee] + [e for e in roster if e != shift.employee]
+    ordered = order_candidates(
+        shift.employee,
+        roster,
+        on=shift.date,
+        start=shift.start,
+        end=shift.end,
+        history_priors=history_priors,
+    )
     for first in ordered:
         capacity = 8.0 - _daily_worked(
             result.placed, employee=first, on=shift.date
@@ -1023,9 +1040,17 @@ def _pass_b_place(
     time_off: list[TimeOffRequest],
     roster: list[str],
     unavoidable_shift_ids: set[str],
+    history_priors: HistoryPriors | None = None,
 ) -> bool:
     """Pass B: place residual coverage even if OT; mark reason_unavoidable."""
-    ordered = [shift.employee] + [e for e in roster if e != shift.employee]
+    ordered = order_candidates(
+        shift.employee,
+        roster,
+        on=shift.date,
+        start=shift.start,
+        end=shift.end,
+        history_priors=history_priors,
+    )
     for employee in ordered:
         if not _eligible_employee(
             employee,
@@ -1243,6 +1268,7 @@ def compose_week(
     prefer_zero_ot: bool = False,
     parameter_shelf: Any | None = None,
     observed_shelf_hashes: dict[str, str | None] | None = None,
+    history_priors: HistoryPriors | None = None,
 ) -> ComposeResult:
     """Place demand shifts. Closed-world availability. Averaging only after packet_accepted.
 
@@ -1252,6 +1278,9 @@ def compose_week(
 
     When ``parameter_shelf`` is bound, draft input hashes must match — shelf is
     hard authority (availability, approved time-off, demand). Mismatch hard-refuses.
+
+    When ``history_priors`` is provided, soft-bias alternate selection toward
+    familiar day/window patterns. Priors never override shelf or ESA.
     """
     result = ComposeResult()
     if parameter_shelf is not None:
@@ -1289,6 +1318,7 @@ def compose_week(
                 availability=availability,
                 time_off=time_off,
                 roster=roster,
+                history_priors=history_priors,
             ):
                 continue
             if _try_pass_a_split(
@@ -1298,6 +1328,7 @@ def compose_week(
                 availability=availability,
                 time_off=time_off,
                 roster=roster,
+                history_priors=history_priors,
             ):
                 continue
             residuals.append(shift)
@@ -1312,6 +1343,7 @@ def compose_week(
                 time_off=time_off,
                 roster=roster,
                 unavoidable_shift_ids=unavoidable_ids,
+                history_priors=history_priors,
             )
         _apply_regime_ot(
             demand,

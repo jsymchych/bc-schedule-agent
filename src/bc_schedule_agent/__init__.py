@@ -41,6 +41,7 @@ from bc_schedule_agent.ingest import (
 )
 from bc_schedule_agent.packet import accept_or_reject_packet, check_averaging_packet
 from bc_schedule_agent.planner import plan_coverage
+from bc_schedule_agent.priors import HistoryPriors, build_history_priors
 from bc_schedule_agent.replay import (
     ReplayError,
     ReplayInputs,
@@ -68,6 +69,7 @@ __all__ = [
     "DemoSession",
     "ExportBlocked",
     "GateError",
+    "HistoryPriors",
     "LEGAL_POSTURE",
     "ParameterShelf",
     "ParameterShelfStore",
@@ -82,6 +84,7 @@ __all__ = [
     "agent_approve_ot",
     "approve_ot",
     "build_gate_snapshot",
+    "build_history_priors",
     "build_parameter_shelf",
     "build_pdf_exhibit",
     "build_xlsx_exhibit",

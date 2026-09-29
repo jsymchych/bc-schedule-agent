@@ -738,6 +738,11 @@ def write_exhibits(
                 week_path / REPLAY_INPUTS_FILENAME, envelope_inputs
             )
             exhibit_paths["replay_inputs"] = str(week_envelope)
+        # Durable audit copy so Wave D priors survive restart / exhibit out_dir moves.
+        week_audit = week_path / "audit.json"
+        week_audit.write_text(
+            json.dumps(audit, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         store.record_issue(
             week_start=week_start,
             decision_id=decision_id,
