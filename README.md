@@ -26,6 +26,8 @@ tests/                   # pytest
 
 ## Local demo
 
+One operator, one browser session. Run `demo_app` locally and walk `DEMO.md` in that single tab — do not open a second operator session against the same port.
+
 ```bash
 python3 -m bc_schedule_agent.demo_app
 # http://127.0.0.1:8765/

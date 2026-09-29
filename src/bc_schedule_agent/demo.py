@@ -375,6 +375,23 @@ def load_scenario_from_disk(
     )
 
 
+def _write_bytes_idempotent(path: Path, data: bytes, *, force: bool) -> None:
+    """Seed missing files. Existing disk wins unless ``force=True``.
+
+    When ``force=True`` and bytes already match, skip rewrite (idempotent).
+    """
+    if path.is_file():
+        if not force:
+            return
+        if path.read_bytes() == data:
+            return
+    path.write_bytes(data)
+
+
+def _write_text_idempotent(path: Path, text: str, *, force: bool) -> None:
+    _write_bytes_idempotent(path, text.encode("utf-8"), force=force)
+
+
 def ensure_fixture_files(
     root: Path | None = None,
     *,
@@ -382,8 +399,10 @@ def ensure_fixture_files(
 ) -> Path:
     """Seed synthetic four-input sheets under fixtures/demo/ when missing.
 
-    Generators write once (or when ``force=True``). After seed, disk is the
-    source of truth for ``run_scenario`` / uploads — not in-memory rebuilds.
+    Existing files are never overwritten unless ``force=True`` (disk is the
+    source of truth). When ``force=True`` and on-disk bytes already match,
+    rewrite is skipped (idempotent). After seed, disk feeds ``run_scenario`` /
+    uploads — not in-memory rebuilds.
     """
     out = root or fixtures_dir()
     out.mkdir(parents=True, exist_ok=True)
@@ -391,32 +410,37 @@ def ensure_fixture_files(
         scenario = build_scenario(sid)
         base = out / sid
         base.mkdir(parents=True, exist_ok=True)
-        required = [
+        _write_bytes_idempotent(
             base / SHEET_FILENAMES["hours_of_operation"],
+            scenario.hours_of_operation,
+            force=force,
+        )
+        _write_bytes_idempotent(
             base / SHEET_FILENAMES["sales_projections"],
+            scenario.sales_projections,
+            force=force,
+        )
+        _write_bytes_idempotent(
             base / SHEET_FILENAMES["availability"],
+            scenario.availability_raw,
+            force=force,
+        )
+        _write_bytes_idempotent(
             base / SHEET_FILENAMES["time_off"],
-            base / "ask.txt",
-        ]
-        if scenario.averaging_packets:
-            required.append(base / "averaging_packet.json")
-        if not force and all(p.is_file() for p in required):
-            continue
-        (base / SHEET_FILENAMES["hours_of_operation"]).write_bytes(
-            scenario.hours_of_operation
+            scenario.time_off_raw,
+            force=force,
         )
-        (base / SHEET_FILENAMES["sales_projections"]).write_bytes(
-            scenario.sales_projections
-        )
-        (base / SHEET_FILENAMES["availability"]).write_bytes(scenario.availability_raw)
-        (base / SHEET_FILENAMES["time_off"]).write_bytes(scenario.time_off_raw)
         if scenario.averaging_packets:
-            (base / "averaging_packet.json").write_text(
+            packet_text = (
                 json.dumps(scenario.averaging_packets[0], indent=2, sort_keys=True)
-                + "\n",
-                encoding="utf-8",
+                + "\n"
             )
-        (base / "ask.txt").write_text(scenario.ask + "\n", encoding="utf-8")
+            _write_text_idempotent(
+                base / "averaging_packet.json",
+                packet_text,
+                force=force,
+            )
+        _write_text_idempotent(base / "ask.txt", scenario.ask + "\n", force=force)
     return out
 
 

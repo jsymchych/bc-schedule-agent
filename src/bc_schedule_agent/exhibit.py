@@ -234,8 +234,41 @@ def _wrap_pdf_line(text: str, width: int = 96) -> list[str]:
     return parts
 
 
+def _paginate_pdf_lines(
+    lines: list[str],
+    *,
+    y_top: int = 780,
+    y_floor: int = 40,
+    line_height: int = 11,
+) -> list[list[str]]:
+    """Split wrapped lines into pages so the audit appendix is never truncated."""
+    pages: list[list[str]] = []
+    current: list[str] = []
+    y = y_top
+    for line in lines:
+        if current and y < y_floor:
+            pages.append(current)
+            current = []
+            y = y_top
+        current.append(line)
+        y -= line_height
+    if current:
+        pages.append(current)
+    return pages or [[]]
+
+
+def _pdf_page_stream(page_lines: list[str], *, y_top: int = 780) -> bytes:
+    y = y_top
+    parts: list[str] = ["BT", "/F1 9 Tf", "14 TL"]
+    for line in page_lines:
+        parts.append(f"1 0 0 1 40 {y} Tm ({_pdf_escape(line)}) Tj")
+        y -= 11
+    parts.append("ET")
+    return "\n".join(parts).encode("latin-1", errors="replace")
+
+
 def render_pdf_bytes(model: ScheduleModel, chain: AuditChain) -> bytes:
-    """Minimal single-page PDF: roster + legal posture + prose appendix."""
+    """Paginated PDF: roster + legal posture + full prose audit appendix."""
     raw_lines: list[str] = [
         "BC Schedule Exhibit",
         f"Decision id: {model.decision_id}",
@@ -270,31 +303,41 @@ def render_pdf_bytes(model: ScheduleModel, chain: AuditChain) -> bytes:
     for line in raw_lines:
         lines.extend(_wrap_pdf_line(line))
 
-    # PDF content stream (Helvetica, top-down).
-    y = 780
-    content_parts: list[str] = ["BT", "/F1 9 Tf", "14 TL"]
-    for line in lines:
-        content_parts.append(f"1 0 0 1 40 {y} Tm ({_pdf_escape(line)}) Tj")
-        y -= 11
-        if y < 40:
-            break
-    content_parts.append("ET")
-    stream = "\n".join(content_parts).encode("latin-1", errors="replace")
+    page_line_groups = _paginate_pdf_lines(lines)
+    streams = [_pdf_page_stream(group) for group in page_line_groups]
+    page_count = len(streams)
+
+    # Object layout: 1=Catalog, 2=Pages, then (Page, Contents) pairs, then Font.
+    font_obj_num = 3 + (page_count * 2)
+    kids_refs = " ".join(f"{3 + (i * 2)} 0 R" for i in range(page_count))
 
     objects: list[bytes] = []
     objects.append(b"1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj\n")
-    objects.append(b"2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj\n")
     objects.append(
-        b"3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
-        b"/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>endobj\n"
+        f"2 0 obj<< /Type /Pages /Kids [{kids_refs}] /Count {page_count} >>endobj\n".encode(
+            "ascii"
+        )
     )
+    for i, stream in enumerate(streams):
+        page_num = 3 + (i * 2)
+        content_num = page_num + 1
+        objects.append(
+            (
+                f"{page_num} 0 obj<< /Type /Page /Parent 2 0 R "
+                f"/MediaBox [0 0 612 792] /Contents {content_num} 0 R "
+                f"/Resources << /Font << /F1 {font_obj_num} 0 R >> >> >>endobj\n"
+            ).encode("ascii")
+        )
+        objects.append(
+            f"{content_num} 0 obj<< /Length {len(stream)} >>stream\n".encode("ascii")
+            + stream
+            + b"\nendstream\nendobj\n"
+        )
     objects.append(
-        f"4 0 obj<< /Length {len(stream)} >>stream\n".encode("ascii")
-        + stream
-        + b"\nendstream\nendobj\n"
-    )
-    objects.append(
-        b"5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj\n"
+        (
+            f"{font_obj_num} 0 obj<< /Type /Font /Subtype /Type1 "
+            f"/BaseFont /Helvetica >>endobj\n"
+        ).encode("ascii")
     )
 
     out = io.BytesIO()
@@ -315,8 +358,36 @@ def render_pdf_bytes(model: ScheduleModel, chain: AuditChain) -> bytes:
     return out.getvalue()
 
 
+def _col_letters(index: int) -> str:
+    """1-based column index → A, B, … Z, AA, …"""
+    col = ""
+    n = index
+    while n:
+        n, rem = divmod(n - 1, 26)
+        col = chr(65 + rem) + col
+    return col
+
+
+def _sheet_xml(rows: list[list[str]]) -> str:
+    def cell_xml(ref: str, value: str) -> str:
+        return f'<c r="{ref}" t="inlineStr"><is><t>{escape(value)}</t></is></c>'
+
+    sheet_rows: list[str] = []
+    for r_idx, row in enumerate(rows, start=1):
+        cells = [
+            cell_xml(f"{_col_letters(c_idx)}{r_idx}", value)
+            for c_idx, value in enumerate(row, start=1)
+        ]
+        sheet_rows.append(f'<row r="{r_idx}">{"".join(cells)}</row>')
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        f'<sheetData>{"".join(sheet_rows)}</sheetData></worksheet>'
+    )
+
+
 def render_xlsx_bytes(model: ScheduleModel) -> bytes:
-    """Minimal OOXML workbook: shifts + OT lines + legal posture row."""
+    """OOXML workbook: schedule sheet + OT sheet (approver + reason columns)."""
     headers = [
         "decision_id",
         "ruleset_version",
@@ -378,33 +449,50 @@ def render_xlsx_bytes(model: ScheduleModel) -> bytes:
             ]
         )
 
-    def cell_xml(ref: str, value: str) -> str:
-        return (
-            f'<c r="{ref}" t="inlineStr"><is><t>{escape(value)}</t></is></c>'
+    ot_headers = [
+        "proposal_id",
+        "employee",
+        "date",
+        "hours",
+        "multiplier",
+        "section",
+        "status",
+        "shift_id",
+        "human_name",
+        "timestamp",
+        "reason",
+    ]
+    ot_rows: list[list[str]] = [ot_headers]
+    for o in sorted(
+        model.ot_proposals,
+        key=lambda p: (p.date, p.employee, p.proposal_id),
+    ):
+        ot_rows.append(
+            [
+                o.proposal_id,
+                o.employee,
+                o.date.isoformat(),
+                str(o.hours),
+                str(o.multiplier),
+                o.section,
+                o.status,
+                o.shift_id or "",
+                o.decided_by or "",
+                o.decided_at or "",
+                o.reason or "",
+            ]
         )
 
-    sheet_rows: list[str] = []
-    for r_idx, row in enumerate(rows, start=1):
-        cells = []
-        for c_idx, value in enumerate(row):
-            col = ""
-            n = c_idx + 1
-            while n:
-                n, rem = divmod(n - 1, 26)
-                col = chr(65 + rem) + col
-            cells.append(cell_xml(f"{col}{r_idx}", value))
-        sheet_rows.append(f'<row r="{r_idx}">{"".join(cells)}</row>')
-
-    sheet = (
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-        f'<sheetData>{"".join(sheet_rows)}</sheetData></worksheet>'
-    )
+    sheet1 = _sheet_xml(rows)
+    sheet2 = _sheet_xml(ot_rows)
     workbook = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
         'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-        '<sheets><sheet name="schedule" sheetId="1" r:id="rId1"/></sheets>'
+        "<sheets>"
+        '<sheet name="schedule" sheetId="1" r:id="rId1"/>'
+        '<sheet name="ot" sheetId="2" r:id="rId2"/>'
+        "</sheets>"
         "</workbook>"
     )
     rels = (
@@ -421,6 +509,9 @@ def render_xlsx_bytes(model: ScheduleModel) -> bytes:
         '<Relationship Id="rId1" '
         'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
         'Target="worksheets/sheet1.xml"/>'
+        '<Relationship Id="rId2" '
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
+        'Target="worksheets/sheet2.xml"/>'
         "</Relationships>"
     )
     content_types = (
@@ -432,6 +523,8 @@ def render_xlsx_bytes(model: ScheduleModel) -> bytes:
         'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
         '<Override PartName="/xl/worksheets/sheet1.xml" '
         'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+        '<Override PartName="/xl/worksheets/sheet2.xml" '
+        'ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
         "</Types>"
     )
 
@@ -441,7 +534,8 @@ def render_xlsx_bytes(model: ScheduleModel) -> bytes:
         zf.writestr("_rels/.rels", rels)
         zf.writestr("xl/workbook.xml", workbook)
         zf.writestr("xl/_rels/workbook.xml.rels", wb_rels)
-        zf.writestr("xl/worksheets/sheet1.xml", sheet)
+        zf.writestr("xl/worksheets/sheet1.xml", sheet1)
+        zf.writestr("xl/worksheets/sheet2.xml", sheet2)
     return buf.getvalue()
 
 

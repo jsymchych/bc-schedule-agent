@@ -38,8 +38,8 @@ def test_resolve_ask_maps_to_scenarios() -> None:
     assert resolve_ask_to_scenario("apply the s.37 averaging packet") == "bad_s37_packet"
 
 
-def test_fixture_files_written() -> None:
-    out = ensure_fixture_files(ROOT / "fixtures" / "demo")
+def test_fixture_files_written(tmp_path: Path) -> None:
+    out = ensure_fixture_files(tmp_path / "demo")
     for sid in SCENARIO_IDS:
         base = out / sid
         assert (base / "hours_of_operation.csv").is_file()
