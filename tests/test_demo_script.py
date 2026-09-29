@@ -65,15 +65,21 @@ def test_ot_gate_blocks_then_human_approve(tmp_path: Path) -> None:
     assert approved
     state = session.write_downloads(tmp_path / "approved")
     assert state["replay_sentence"]
+    assert "0 pending OT" in state["replay_sentence"]
 
 
 def test_bad_s37_packet_rejected_in_drawer() -> None:
     session = DemoSession()
     state = session.run_scenario("bad_s37_packet")
     assert state["packet_status"].get("sam") == "rejected"
-    hits = [s for s in state["audit_drawer"] if "rejected averaging packet" in s]
+    hits = [
+        s
+        for s in state["audit_drawer"]
+        if "rejected" in s.lower() and "agr_sam_unsigned" in s
+    ]
     assert hits
-    assert "agr_sam_unsigned" in hits[0] or "s.37" in hits[0].lower() or "37" in hits[0]
+    assert "employee_signature" in hits[0]
+    assert "37(2)(a)(ii)" in hits[0]
 
 
 def test_run_smoke_script_headless(tmp_path: Path) -> None:
@@ -93,3 +99,39 @@ def test_demo_app_page_serves() -> None:
     assert "Week grid" in PAGE
     assert "Audit drawer" in PAGE
     assert "Approve pending OT" in PAGE
+    assert "browserDownload" in PAGE
+    assert "/api/exhibit/pdf" in PAGE
+
+
+def test_exhibit_get_serves_after_download(tmp_path: Path) -> None:
+    from bc_schedule_agent.demo import DemoSession
+    from bc_schedule_agent.demo_app import DemoHandler, SESSION
+
+    # Point module SESSION at a fresh draft with exhibits on disk.
+    session = DemoSession()
+    session.run_scenario("clean_week")
+    session.write_downloads(tmp_path / "exhibits")
+    # Swap the live demo SESSION paths used by the handler.
+    SESSION.exhibit_paths = dict(session.exhibit_paths)
+    SESSION.result = session.result
+    SESSION.chain = session.chain
+
+    class _Fake:
+        headers: dict[str, str] = {}
+        wfile = __import__("io").BytesIO()
+        path = "/api/exhibit/pdf"
+
+        def send_response(self, code: int) -> None:
+            self.code = code
+
+        def send_header(self, k: str, v: str) -> None:
+            self.headers[k] = v
+
+        def end_headers(self) -> None:
+            pass
+
+    fake = _Fake()
+    DemoHandler._serve_exhibit(fake, "pdf")  # type: ignore[arg-type]
+    assert fake.code == 200
+    assert fake.headers["Content-Type"] == "application/pdf"
+    assert fake.wfile.getvalue()[:4] == b"%PDF"

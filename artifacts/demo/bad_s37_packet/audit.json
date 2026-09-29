@@ -1,0 +1,557 @@
+{
+  "decision_id": "dec_demo_bad_s37_2026w40",
+  "events": [
+    {
+      "actor": "agent",
+      "event_id": "aud_15cfd4b1d017",
+      "evidence": {
+        "input_hash": "sha256:ec2b14186dd97e8a51cee7eda70b5564f74af4a095de4b993dedf1e5f5f116b7",
+        "source": "bytes"
+      },
+      "kind": "ingest",
+      "prev_event_id": null,
+      "prose": "agent ingested availability (hash sha256:ec2b14186dd97e8a51cee7eda70b5564f74af4a095de4b993dedf1e5f5f116b7).",
+      "subject": {
+        "rows": 7,
+        "sheet": "availability"
+      },
+      "timestamp": "2026-09-29T16:43:41.447829Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_d93e08015ed7",
+      "evidence": {
+        "input_hash": "sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243",
+        "source": "bytes"
+      },
+      "kind": "ingest",
+      "prev_event_id": "aud_15cfd4b1d017",
+      "prose": "agent ingested time_off (hash sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243).",
+      "subject": {
+        "rows": 0,
+        "sheet": "time_off"
+      },
+      "timestamp": "2026-09-29T16:43:41.447883Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_e3503709b493",
+      "evidence": {
+        "input_hash": "sha256:e7211fb1588d278de6bde8e9585949c973c8ce9db058dab33dc28b76a466f884",
+        "source": "dict"
+      },
+      "kind": "ingest",
+      "prev_event_id": "aud_d93e08015ed7",
+      "prose": "agent ingested averaging_packet (hash sha256:e7211fb1588d278de6bde8e9585949c973c8ce9db058dab33dc28b76a466f884).",
+      "subject": {
+        "employee": "sam",
+        "packet_id": "agr_sam_unsigned",
+        "sheet": "averaging_packet"
+      },
+      "timestamp": "2026-09-29T16:43:41.448000Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_2bfe768a889d",
+      "evidence": {
+        "demand": {
+          "shift_ids": [
+            "sh_2026-09-28",
+            "sh_2026-09-29",
+            "sh_2026-09-30",
+            "sh_2026-10-01"
+          ],
+          "week_start": "2026-09-27"
+        },
+        "input_hash": "sha256:fae7d29aacde56562250d6bbbf523fc0603318266eddbf3acb85d3a8e532b42f",
+        "source": "fixture"
+      },
+      "kind": "parse",
+      "prev_event_id": "aud_e3503709b493",
+      "prose": "agent stored coverage demand dem_bad_packet from fixture (4 shifts).",
+      "subject": {
+        "demand_id": "dem_bad_packet",
+        "shifts": 4
+      },
+      "timestamp": "2026-09-29T16:43:41.448074Z"
+    },
+    {
+      "actor": "rule:bc-esa-s37-packet-signed-both",
+      "event_id": "aud_feec9f95e923",
+      "evidence": {
+        "audit_sentence": "Packet agr_sam_unsigned rejected for sam: employee_signature (s.37(2)(a)(ii))",
+        "missing_terms": [
+          {
+            "detail": "employee signature missing",
+            "section": "37(2)(a)(ii)",
+            "term": "employee_signature"
+          }
+        ]
+      },
+      "kind": "packet_rejected",
+      "prev_event_id": "aud_2bfe768a889d",
+      "prose": "Packet agr_sam_unsigned rejected for sam: employee_signature (s.37(2)(a)(ii))",
+      "subject": {
+        "employee": "sam",
+        "packet_id": "agr_sam_unsigned"
+      },
+      "timestamp": "2026-09-29T16:43:41.448130Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_f0e86c2340b8",
+      "evidence": {
+        "end": "18:30",
+        "regime": "standard",
+        "start": "08:00",
+        "worked_hours": 10.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_feec9f95e923",
+      "prose": "agent placed sam on 2026-09-28 08:00-18:30 (10.0h, regime standard).",
+      "subject": {
+        "date": "2026-09-28",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-28"
+      },
+      "timestamp": "2026-09-29T16:43:41.448176Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_db4481e82092",
+      "evidence": {
+        "end": "18:30",
+        "regime": "standard",
+        "start": "08:00",
+        "worked_hours": 10.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_f0e86c2340b8",
+      "prose": "agent placed sam on 2026-09-29 08:00-18:30 (10.0h, regime standard).",
+      "subject": {
+        "date": "2026-09-29",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-29"
+      },
+      "timestamp": "2026-09-29T16:43:41.448209Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_666909706ec5",
+      "evidence": {
+        "end": "18:30",
+        "regime": "standard",
+        "start": "08:00",
+        "worked_hours": 10.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_db4481e82092",
+      "prose": "agent placed sam on 2026-09-30 08:00-18:30 (10.0h, regime standard).",
+      "subject": {
+        "date": "2026-09-30",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-30"
+      },
+      "timestamp": "2026-09-29T16:43:41.448236Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_7673ba3d696a",
+      "evidence": {
+        "end": "18:30",
+        "regime": "standard",
+        "start": "08:00",
+        "worked_hours": 10.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_666909706ec5",
+      "prose": "agent placed sam on 2026-10-01 08:00-18:30 (10.0h, regime standard).",
+      "subject": {
+        "date": "2026-10-01",
+        "employee": "sam",
+        "shift_id": "sh_2026-10-01"
+      },
+      "timestamp": "2026-09-29T16:43:41.448264Z"
+    },
+    {
+      "actor": "rule:bc-esa-s40-overtime-rates",
+      "event_id": "aud_d87af5e60ef2",
+      "evidence": {
+        "band": "8_to_12",
+        "hours": 2.0,
+        "multiplier": 1.5,
+        "proposal_id": "ot_1880d54444",
+        "regime": "standard",
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "PENDING_APPROVAL"
+      },
+      "kind": "ot_proposed",
+      "prev_event_id": "aud_7673ba3d696a",
+      "prose": "rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-09-28: 2.0h at 1.5x (s.35 / 40).",
+      "subject": {
+        "date": "2026-09-28",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-28"
+      },
+      "timestamp": "2026-09-29T16:43:41.448305Z"
+    },
+    {
+      "actor": "rule:bc-esa-s40-overtime-rates",
+      "event_id": "aud_33086a9ae53c",
+      "evidence": {
+        "band": "8_to_12",
+        "hours": 2.0,
+        "multiplier": 1.5,
+        "proposal_id": "ot_ab66b8b95b",
+        "regime": "standard",
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "PENDING_APPROVAL"
+      },
+      "kind": "ot_proposed",
+      "prev_event_id": "aud_d87af5e60ef2",
+      "prose": "rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-09-29: 2.0h at 1.5x (s.35 / 40).",
+      "subject": {
+        "date": "2026-09-29",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-29"
+      },
+      "timestamp": "2026-09-29T16:43:41.448323Z"
+    },
+    {
+      "actor": "rule:bc-esa-s40-overtime-rates",
+      "event_id": "aud_ab915ba61ad1",
+      "evidence": {
+        "band": "8_to_12",
+        "hours": 2.0,
+        "multiplier": 1.5,
+        "proposal_id": "ot_f755424930",
+        "regime": "standard",
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "PENDING_APPROVAL"
+      },
+      "kind": "ot_proposed",
+      "prev_event_id": "aud_33086a9ae53c",
+      "prose": "rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-09-30: 2.0h at 1.5x (s.35 / 40).",
+      "subject": {
+        "date": "2026-09-30",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-30"
+      },
+      "timestamp": "2026-09-29T16:43:41.448341Z"
+    },
+    {
+      "actor": "rule:bc-esa-s40-overtime-rates",
+      "event_id": "aud_27f8892eb52b",
+      "evidence": {
+        "band": "8_to_12",
+        "hours": 2.0,
+        "multiplier": 1.5,
+        "proposal_id": "ot_7b9452e676",
+        "regime": "standard",
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "PENDING_APPROVAL"
+      },
+      "kind": "ot_proposed",
+      "prev_event_id": "aud_ab915ba61ad1",
+      "prose": "rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-10-01: 2.0h at 1.5x (s.35 / 40).",
+      "subject": {
+        "date": "2026-10-01",
+        "employee": "sam",
+        "shift_id": "sh_2026-10-01"
+      },
+      "timestamp": "2026-09-29T16:43:41.448359Z"
+    },
+    {
+      "actor": "human:Alex Rivera",
+      "event_id": "aud_18d06aa7ff82",
+      "evidence": {
+        "hours": 2.0,
+        "human_name": "Alex Rivera",
+        "multiplier": 1.5,
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "APPROVED",
+        "timestamp": "2026-09-29T19:00:00Z"
+      },
+      "kind": "ot_approved",
+      "prev_event_id": "aud_27f8892eb52b",
+      "prose": "human:Alex Rivera approved overtime ot_1880d54444 at 2026-09-29T19:00:00Z.",
+      "subject": {
+        "date": "2026-09-28",
+        "employee": "sam",
+        "proposal_id": "ot_1880d54444",
+        "shift_id": "sh_2026-09-28"
+      },
+      "timestamp": "2026-09-29T19:00:00Z"
+    },
+    {
+      "actor": "human:Alex Rivera",
+      "event_id": "aud_464ca0ec3d69",
+      "evidence": {
+        "hours": 2.0,
+        "human_name": "Alex Rivera",
+        "multiplier": 1.5,
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "APPROVED",
+        "timestamp": "2026-09-29T19:00:00Z"
+      },
+      "kind": "ot_approved",
+      "prev_event_id": "aud_18d06aa7ff82",
+      "prose": "human:Alex Rivera approved overtime ot_ab66b8b95b at 2026-09-29T19:00:00Z.",
+      "subject": {
+        "date": "2026-09-29",
+        "employee": "sam",
+        "proposal_id": "ot_ab66b8b95b",
+        "shift_id": "sh_2026-09-29"
+      },
+      "timestamp": "2026-09-29T19:00:00Z"
+    },
+    {
+      "actor": "human:Alex Rivera",
+      "event_id": "aud_65c412d14211",
+      "evidence": {
+        "hours": 2.0,
+        "human_name": "Alex Rivera",
+        "multiplier": 1.5,
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "APPROVED",
+        "timestamp": "2026-09-29T19:00:00Z"
+      },
+      "kind": "ot_approved",
+      "prev_event_id": "aud_464ca0ec3d69",
+      "prose": "human:Alex Rivera approved overtime ot_f755424930 at 2026-09-29T19:00:00Z.",
+      "subject": {
+        "date": "2026-09-30",
+        "employee": "sam",
+        "proposal_id": "ot_f755424930",
+        "shift_id": "sh_2026-09-30"
+      },
+      "timestamp": "2026-09-29T19:00:00Z"
+    },
+    {
+      "actor": "human:Alex Rivera",
+      "event_id": "aud_d39b7dffe63d",
+      "evidence": {
+        "hours": 2.0,
+        "human_name": "Alex Rivera",
+        "multiplier": 1.5,
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "APPROVED",
+        "timestamp": "2026-09-29T19:00:00Z"
+      },
+      "kind": "ot_approved",
+      "prev_event_id": "aud_65c412d14211",
+      "prose": "human:Alex Rivera approved overtime ot_7b9452e676 at 2026-09-29T19:00:00Z.",
+      "subject": {
+        "date": "2026-10-01",
+        "employee": "sam",
+        "proposal_id": "ot_7b9452e676",
+        "shift_id": "sh_2026-10-01"
+      },
+      "timestamp": "2026-09-29T19:00:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_e9d63d11d0c8",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 4,
+        "placed_count": 4,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_d39b7dffe63d",
+      "prose": "agent issued decision dec_demo_bad_s37_2026w40 schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.",
+      "subject": {
+        "decision_id": "dec_demo_bad_s37_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_16833567f24f",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 4,
+        "placed_count": 4,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_e9d63d11d0c8",
+      "prose": "agent issued decision dec_demo_bad_s37_2026w40 schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.",
+      "subject": {
+        "decision_id": "dec_demo_bad_s37_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_0a966bd735da",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 4,
+        "placed_count": 4,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_16833567f24f",
+      "prose": "agent issued decision dec_demo_bad_s37_2026w40 schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.",
+      "subject": {
+        "decision_id": "dec_demo_bad_s37_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_4c602ed4fd56",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 4,
+        "placed_count": 4,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_0a966bd735da",
+      "prose": "agent issued decision dec_demo_bad_s37_2026w40 schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.",
+      "subject": {
+        "decision_id": "dec_demo_bad_s37_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_291649c386c3",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 4,
+        "placed_count": 4,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_4c602ed4fd56",
+      "prose": "agent issued decision dec_demo_bad_s37_2026w40 schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.",
+      "subject": {
+        "decision_id": "dec_demo_bad_s37_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_c34dfc4dfa29",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 4,
+        "placed_count": 4,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_291649c386c3",
+      "prose": "agent issued decision dec_demo_bad_s37_2026w40 schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.",
+      "subject": {
+        "decision_id": "dec_demo_bad_s37_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_284fbecc8ea4",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 4,
+        "placed_count": 4,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_c34dfc4dfa29",
+      "prose": "agent issued decision dec_demo_bad_s37_2026w40 schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.",
+      "subject": {
+        "decision_id": "dec_demo_bad_s37_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_001dc94ceb6b",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 4,
+        "placed_count": 4,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_284fbecc8ea4",
+      "prose": "agent issued decision dec_demo_bad_s37_2026w40 schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.",
+      "subject": {
+        "decision_id": "dec_demo_bad_s37_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_616a14069bc5",
+      "evidence": {
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 4,
+        "placed_count": 4,
+        "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+        "ruleset_version": "esa_bc_v1",
+        "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_001dc94ceb6b",
+      "prose": "agent issued decision dec_demo_bad_s37_2026w40 schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.",
+      "subject": {
+        "decision_id": "dec_demo_bad_s37_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    }
+  ],
+  "hours_and_multipliers_only": true,
+  "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+  "ruleset_hash": "sha256:9f82f4a2aaaa6b005be2eef4435203fd5b8837112236b5c5946e51b0e62ffed3",
+  "ruleset_version": "esa_bc_v1",
+  "schedule_hash": "sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441",
+  "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+  "week_start": "2026-09-27"
+}

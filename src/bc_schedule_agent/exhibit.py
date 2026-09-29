@@ -131,9 +131,27 @@ def event_to_prose(event: AuditEvent) -> str:
             f"{actor} accepted averaging packet {subj.get('packet_id')}."
         )
     if kind == "packet_rejected":
+        sentence = ev.get("audit_sentence")
+        if isinstance(sentence, str) and sentence.strip():
+            return sentence
+        missing = ev.get("missing_terms") or []
+        if isinstance(missing, list) and missing:
+            parts: list[str] = []
+            for item in missing:
+                if isinstance(item, dict):
+                    term = item.get("term", "term")
+                    section = item.get("section", "")
+                    parts.append(f"{term} (s.{section})" if section else str(term))
+                else:
+                    parts.append(str(item))
+            return (
+                f"{actor} rejected averaging packet {subj.get('packet_id')}: "
+                + "; ".join(parts)
+                + "."
+            )
         return (
             f"{actor} rejected averaging packet {subj.get('packet_id')}: "
-            f"{ev.get('failed_terms', ev.get('detail', ''))}."
+            f"{ev.get('detail', 'required term missing')}."
         )
     if kind == "issued":
         return (

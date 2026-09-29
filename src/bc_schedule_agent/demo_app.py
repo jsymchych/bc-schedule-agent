@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
@@ -278,12 +279,42 @@ $("btn-approve").onclick = async () => {
 
 $("btn-download").onclick = async () => {
   try {
-    render(await api("/api/download", {}));
+    const state = await api("/api/download", {});
+    render(state);
+    // Write to disk, then pull the exhibits into the browser as real downloads.
+    await Promise.all([
+      browserDownload("/api/exhibit/pdf"),
+      browserDownload("/api/exhibit/xlsx"),
+    ]);
+    if (state.replay_sentence) {
+      $("status").textContent = state.replay_sentence + " PDF and XLSX saved to Downloads.";
+      $("status").className = "status ok";
+    }
   } catch (e) {
     $("status").textContent = String(e.message || e);
     $("status").className = "status warn";
   }
 };
+
+async function browserDownload(path) {
+  const res = await fetch(path);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || ("download failed: " + res.status));
+  }
+  const blob = await res.blob();
+  const cd = res.headers.get("Content-Disposition") || "";
+  const match = /filename="([^"]+)"/.exec(cd);
+  const name = match ? match[1] : path.split("/").pop();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 $("scenario").onchange = () => { $("ask").value = ""; };
 
@@ -337,7 +368,41 @@ class DemoHandler(BaseHTTPRequestHandler):
         if path == "/api/state":
             self._json(200, SESSION.to_state())
             return
+        if path in {"/api/exhibit/pdf", "/api/exhibit/xlsx", "/api/exhibit/audit.json"}:
+            self._serve_exhibit(path.rsplit("/", 1)[-1])
+            return
         self._json(404, {"error": "not found"})
+
+    def _serve_exhibit(self, kind: str) -> None:
+        """Serve the last issued exhibit bytes so the browser can download them."""
+        paths = SESSION.exhibit_paths or {}
+        key = {"pdf": "pdf", "xlsx": "xlsx", "audit.json": "audit_json"}.get(kind)
+        if key is None:
+            self._json(404, {"error": f"unknown exhibit: {kind}"})
+            return
+        path_str = paths.get(key)
+        if not path_str:
+            self._json(409, {"error": "no exhibit yet — click Download first"})
+            return
+        file_path = Path(path_str)
+        if not file_path.is_file():
+            self._json(404, {"error": f"exhibit missing on disk: {file_path}"})
+            return
+        raw = file_path.read_bytes()
+        content_types = {
+            "pdf": "application/pdf",
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "audit.json": "application/json; charset=utf-8",
+        }
+        self.send_response(200)
+        self.send_header("Content-Type", content_types[kind])
+        self.send_header("Content-Length", str(len(raw)))
+        self.send_header(
+            "Content-Disposition", f'attachment; filename="{file_path.name}"'
+        )
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(raw)
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path

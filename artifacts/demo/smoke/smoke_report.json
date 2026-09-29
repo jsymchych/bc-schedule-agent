@@ -10,9 +10,9 @@
       "download_enabled": true,
       "id": "clean_week",
       "paths": {
-        "audit_json": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_5_local-demo-script/artifacts/demo/smoke/clean_week/audit.json",
-        "pdf": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_5_local-demo-script/artifacts/demo/smoke/clean_week/dec_demo_clean_week_2026w40.pdf",
-        "xlsx": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_5_local-demo-script/artifacts/demo/smoke/clean_week/dec_demo_clean_week_2026w40.xlsx"
+        "audit_json": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/clean_week/audit.json",
+        "pdf": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/clean_week/dec_demo_clean_week_2026w40.pdf",
+        "xlsx": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/clean_week/dec_demo_clean_week_2026w40.xlsx"
       },
       "replay": "Replay matched schedule_hash=sha256:263ffc03079bb639f7c3ced14d0ee4ccded8cbfbbf75bf9ba3696fc54e0f9035 for decision dec_demo_clean_week_2026w40 (5 placed, 0 refuses, 0 pending OT)."
     },
@@ -20,14 +20,14 @@
       "approved_by": "Alex Rivera",
       "id": "ot_gate",
       "paths": {
-        "audit_json": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_5_local-demo-script/artifacts/demo/smoke/ot_approved/audit.json",
-        "pdf": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_5_local-demo-script/artifacts/demo/smoke/ot_approved/dec_demo_ot_week_2026w40.pdf",
-        "xlsx": "/Volumes/SovereignSSD/builds/.agent/sandboxes/bc-schedule-agent/ticket_5_local-demo-script/artifacts/demo/smoke/ot_approved/dec_demo_ot_week_2026w40.xlsx"
+        "audit_json": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/ot_approved/audit.json",
+        "pdf": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/ot_approved/dec_demo_ot_week_2026w40.pdf",
+        "xlsx": "/Volumes/SovereignSSD/builds/bc-schedule-agent/artifacts/demo/smoke/ot_approved/dec_demo_ot_week_2026w40.xlsx"
       },
-      "replay": "Replay matched schedule_hash=sha256:db0e8ea358c49de3b9aa608e441adf4a7e545ba0fa28bfe6444529cc100d4a88 for decision dec_demo_ot_week_2026w40 (1 placed, 0 refuses, 1 pending OT)."
+      "replay": "Replay matched schedule_hash=sha256:db0e8ea358c49de3b9aa608e441adf4a7e545ba0fa28bfe6444529cc100d4a88 for decision dec_demo_ot_week_2026w40 (1 placed, 0 refuses, 0 pending OT)."
     },
     {
-      "audit_hit": "rule:bc-esa-s37-packet-signed-both rejected averaging packet agr_sam_unsigned: .",
+      "audit_hit": "Packet agr_sam_unsigned rejected for sam: employee_signature (s.37(2)(a)(ii))",
       "id": "bad_s37_packet",
       "packet_status": {
         "sam": "rejected"

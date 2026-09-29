@@ -391,12 +391,15 @@ class DemoSession:
         replay_result = replay(
             inputs, expected_schedule_hash=bundle.issue.schedule_hash
         )
+        # Replay is hash authority only. Pending OT comes from the issued
+        # session after human gates — rebuild would re-propose PENDING lines.
+        issued_pending = len(pending_ot_lines(self.result.ot_proposals))
         self.replay_sentence = (
             f"Replay matched schedule_hash={replay_result.schedule_hash} "
             f"for decision {bundle.issue.decision_id} "
             f"({replay_result.placed_count} placed, "
             f"{replay_result.refuse_count} refuses, "
-            f"{replay_result.pending_ot_count} pending OT)."
+            f"{issued_pending} pending OT)."
         )
         self.last_error = None
         return self.to_state()
@@ -508,6 +511,8 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
     assert state["pending_ot_count"] == 0
     assert state["download_enabled"] is True
     state = session.write_downloads(root / "ot_approved")
+    assert state["replay_sentence"]
+    assert "0 pending OT" in state["replay_sentence"]
     report["steps"].append(
         {
             "id": "ot_gate",
@@ -519,8 +524,15 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
 
     # 3. Bad s.37 packet → packet_rejected in drawer; standard regime OT may apply
     state = session.run_scenario("bad_s37_packet")
-    rejected = [s for s in state["audit_drawer"] if "rejected averaging packet" in s]
+    rejected = [
+        s
+        for s in state["audit_drawer"]
+        if "rejected" in s.lower() and "agr_sam_unsigned" in s
+    ]
     assert rejected, "expected packet_rejected prose in audit drawer"
+    assert any(
+        "employee_signature" in s and "37(2)(a)(ii)" in s for s in rejected
+    ), f"drawer must name missing signature term, got {rejected!r}"
     report["steps"].append(
         {
             "id": "bad_s37_packet",

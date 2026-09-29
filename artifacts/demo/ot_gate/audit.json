@@ -3,7 +3,7 @@
   "events": [
     {
       "actor": "agent",
-      "event_id": "aud_12d5fe288ab2",
+      "event_id": "aud_5366f51df1e2",
       "evidence": {
         "input_hash": "sha256:ec2b14186dd97e8a51cee7eda70b5564f74af4a095de4b993dedf1e5f5f116b7",
         "source": "bytes"
@@ -15,27 +15,27 @@
         "rows": 7,
         "sheet": "availability"
       },
-      "timestamp": "2026-09-29T17:05:13.550084Z"
+      "timestamp": "2026-09-29T16:40:42.593390Z"
     },
     {
       "actor": "agent",
-      "event_id": "aud_32b72e7a8ddc",
+      "event_id": "aud_85237a01e317",
       "evidence": {
         "input_hash": "sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243",
         "source": "bytes"
       },
       "kind": "ingest",
-      "prev_event_id": "aud_12d5fe288ab2",
+      "prev_event_id": "aud_5366f51df1e2",
       "prose": "agent ingested time_off (hash sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243).",
       "subject": {
         "rows": 0,
         "sheet": "time_off"
       },
-      "timestamp": "2026-09-29T17:05:13.550093Z"
+      "timestamp": "2026-09-29T16:40:42.593435Z"
     },
     {
       "actor": "agent",
-      "event_id": "aud_7d7aa91039a3",
+      "event_id": "aud_8b4661dffb22",
       "evidence": {
         "demand": {
           "shift_ids": [
@@ -47,17 +47,17 @@
         "source": "fixture"
       },
       "kind": "parse",
-      "prev_event_id": "aud_32b72e7a8ddc",
+      "prev_event_id": "aud_85237a01e317",
       "prose": "agent stored coverage demand dem_ot_week from fixture (1 shifts).",
       "subject": {
         "demand_id": "dem_ot_week",
         "shifts": 1
       },
-      "timestamp": "2026-09-29T17:05:13.550105Z"
+      "timestamp": "2026-09-29T16:40:42.593489Z"
     },
     {
       "actor": "agent",
-      "event_id": "aud_7666a5f4ebf9",
+      "event_id": "aud_1c8e86089b34",
       "evidence": {
         "end": "18:30",
         "regime": "standard",
@@ -65,41 +65,41 @@
         "worked_hours": 10.0
       },
       "kind": "place",
-      "prev_event_id": "aud_7d7aa91039a3",
+      "prev_event_id": "aud_8b4661dffb22",
       "prose": "agent placed sam on 2026-09-28 08:00-18:30 (10.0h, regime standard).",
       "subject": {
         "date": "2026-09-28",
         "employee": "sam",
         "shift_id": "sh_ot_mon"
       },
-      "timestamp": "2026-09-29T17:05:13.550113Z"
+      "timestamp": "2026-09-29T16:40:42.593596Z"
     },
     {
       "actor": "rule:bc-esa-s40-overtime-rates",
-      "event_id": "aud_0fe9639c7e7c",
+      "event_id": "aud_e0982afa292f",
       "evidence": {
         "band": "8_to_12",
         "hours": 2.0,
         "multiplier": 1.5,
-        "proposal_id": "ot_c4e0315c42",
+        "proposal_id": "ot_78783a9290",
         "regime": "standard",
         "rule_id": "bc-esa-s40-overtime-rates",
         "section": "35 / 40",
         "status": "PENDING_APPROVAL"
       },
       "kind": "ot_proposed",
-      "prev_event_id": "aud_7666a5f4ebf9",
+      "prev_event_id": "aud_1c8e86089b34",
       "prose": "rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-09-28: 2.0h at 1.5x (s.35 / 40).",
       "subject": {
         "date": "2026-09-28",
         "employee": "sam",
         "shift_id": "sh_ot_mon"
       },
-      "timestamp": "2026-09-29T17:05:13.550125Z"
+      "timestamp": "2026-09-29T16:40:42.593648Z"
     },
     {
       "actor": "human:Alex Rivera",
-      "event_id": "aud_d5c7b05fea26",
+      "event_id": "aud_3baf01f1c4c2",
       "evidence": {
         "hours": 2.0,
         "human_name": "Alex Rivera",
@@ -110,19 +110,19 @@
         "timestamp": "2026-09-29T19:00:00Z"
       },
       "kind": "ot_approved",
-      "prev_event_id": "aud_0fe9639c7e7c",
-      "prose": "human:Alex Rivera approved overtime ot_c4e0315c42 at 2026-09-29T19:00:00Z.",
+      "prev_event_id": "aud_e0982afa292f",
+      "prose": "human:Alex Rivera approved overtime ot_78783a9290 at 2026-09-29T19:00:00Z.",
       "subject": {
         "date": "2026-09-28",
         "employee": "sam",
-        "proposal_id": "ot_c4e0315c42",
+        "proposal_id": "ot_78783a9290",
         "shift_id": "sh_ot_mon"
       },
       "timestamp": "2026-09-29T19:00:00Z"
     },
     {
       "actor": "agent",
-      "event_id": "aud_92eaf66cc4d8",
+      "event_id": "aud_1814921954bf",
       "evidence": {
         "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
         "ot_approved_count": 1,
@@ -134,7 +134,7 @@
         "timestamp": "2026-09-29T19:05:00Z"
       },
       "kind": "issued",
-      "prev_event_id": "aud_d5c7b05fea26",
+      "prev_event_id": "aud_3baf01f1c4c2",
       "prose": "agent issued decision dec_demo_ot_week_2026w40 schedule_hash=sha256:db0e8ea358c49de3b9aa608e441adf4a7e545ba0fa28bfe6444529cc100d4a88.",
       "subject": {
         "decision_id": "dec_demo_ot_week_2026w40"

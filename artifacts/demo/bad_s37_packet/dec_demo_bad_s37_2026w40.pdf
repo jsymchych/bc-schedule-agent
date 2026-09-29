@@ -1,0 +1,86 @@
+%PDF-1.4
+1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj
+2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
+3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>endobj
+4 0 obj<< /Length 5118 >>stream
+BT
+/F1 9 Tf
+14 TL
+1 0 0 1 40 780 Tm (BC Schedule Exhibit) Tj
+1 0 0 1 40 769 Tm (Decision id: dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 758 Tm (Ruleset: esa_bc_v1) Tj
+1 0 0 1 40 747 Tm (Schedule hash: sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441) Tj
+1 0 0 1 40 736 Tm (Week start \(Sunday\): 2026-09-27) Tj
+1 0 0 1 40 725 Tm (Decision support under the Employment Standards Act, not legal advice.) Tj
+1 0 0 1 40 714 Tm (Statute: https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01) Tj
+1 0 0 1 40 703 Tm () Tj
+1 0 0 1 40 692 Tm (Shifts \(hours only - not a paycheque\):) Tj
+1 0 0 1 40 681 Tm (  2026-09-28 sam 08:00-18:30 10.0h [sh_2026-09-28]) Tj
+1 0 0 1 40 670 Tm (  2026-09-29 sam 08:00-18:30 10.0h [sh_2026-09-29]) Tj
+1 0 0 1 40 659 Tm (  2026-09-30 sam 08:00-18:30 10.0h [sh_2026-09-30]) Tj
+1 0 0 1 40 648 Tm (  2026-10-01 sam 08:00-18:30 10.0h [sh_2026-10-01]) Tj
+1 0 0 1 40 637 Tm (Overtime / premiums \(hours x multiplier\):) Tj
+1 0 0 1 40 626 Tm (  2026-09-28 sam 2.0h x 1.5 s.35 / 40 \(APPROVED\)) Tj
+1 0 0 1 40 615 Tm (  2026-09-29 sam 2.0h x 1.5 s.35 / 40 \(APPROVED\)) Tj
+1 0 0 1 40 604 Tm (  2026-09-30 sam 2.0h x 1.5 s.35 / 40 \(APPROVED\)) Tj
+1 0 0 1 40 593 Tm (  2026-10-01 sam 2.0h x 1.5 s.35 / 40 \(APPROVED\)) Tj
+1 0 0 1 40 582 Tm () Tj
+1 0 0 1 40 571 Tm (Audit appendix \(same chain as audit.json\):) Tj
+1 0 0 1 40 560 Tm (  - agent ingested availability \(hash) Tj
+1 0 0 1 40 549 Tm (sha256:ec2b14186dd97e8a51cee7eda70b5564f74af4a095de4b993dedf1e5f5f116b7\).) Tj
+1 0 0 1 40 538 Tm (  - agent ingested time_off \(hash) Tj
+1 0 0 1 40 527 Tm (sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243\).) Tj
+1 0 0 1 40 516 Tm (  - agent ingested averaging_packet \(hash) Tj
+1 0 0 1 40 505 Tm (sha256:e7211fb1588d278de6bde8e9585949c973c8ce9db058dab33dc28b76a466f884\).) Tj
+1 0 0 1 40 494 Tm (  - agent stored coverage demand dem_bad_packet from fixture \(4 shifts\).) Tj
+1 0 0 1 40 483 Tm (  - Packet agr_sam_unsigned rejected for sam: employee_signature \(s.37\(2\)\(a\)\(ii\)\)) Tj
+1 0 0 1 40 472 Tm (  - agent placed sam on 2026-09-28 08:00-18:30 \(10.0h, regime standard\).) Tj
+1 0 0 1 40 461 Tm (  - agent placed sam on 2026-09-29 08:00-18:30 \(10.0h, regime standard\).) Tj
+1 0 0 1 40 450 Tm (  - agent placed sam on 2026-09-30 08:00-18:30 \(10.0h, regime standard\).) Tj
+1 0 0 1 40 439 Tm (  - agent placed sam on 2026-10-01 08:00-18:30 \(10.0h, regime standard\).) Tj
+1 0 0 1 40 428 Tm (  - rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-09-28: 2.0h at 1.5x \(s.35 /) Tj
+1 0 0 1 40 417 Tm (40\).) Tj
+1 0 0 1 40 406 Tm (  - rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-09-29: 2.0h at 1.5x \(s.35 /) Tj
+1 0 0 1 40 395 Tm (40\).) Tj
+1 0 0 1 40 384 Tm (  - rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-09-30: 2.0h at 1.5x \(s.35 /) Tj
+1 0 0 1 40 373 Tm (40\).) Tj
+1 0 0 1 40 362 Tm (  - rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-10-01: 2.0h at 1.5x \(s.35 /) Tj
+1 0 0 1 40 351 Tm (40\).) Tj
+1 0 0 1 40 340 Tm (  - human:Alex Rivera approved overtime ot_1880d54444 at 2026-09-29T19:00:00Z.) Tj
+1 0 0 1 40 329 Tm (  - human:Alex Rivera approved overtime ot_ab66b8b95b at 2026-09-29T19:00:00Z.) Tj
+1 0 0 1 40 318 Tm (  - human:Alex Rivera approved overtime ot_f755424930 at 2026-09-29T19:00:00Z.) Tj
+1 0 0 1 40 307 Tm (  - human:Alex Rivera approved overtime ot_7b9452e676 at 2026-09-29T19:00:00Z.) Tj
+1 0 0 1 40 296 Tm (  - agent issued decision dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 285 Tm (schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.) Tj
+1 0 0 1 40 274 Tm (  - agent issued decision dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 263 Tm (schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.) Tj
+1 0 0 1 40 252 Tm (  - agent issued decision dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 241 Tm (schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.) Tj
+1 0 0 1 40 230 Tm (  - agent issued decision dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 219 Tm (schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.) Tj
+1 0 0 1 40 208 Tm (  - agent issued decision dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 197 Tm (schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.) Tj
+1 0 0 1 40 186 Tm (  - agent issued decision dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 175 Tm (schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.) Tj
+1 0 0 1 40 164 Tm (  - agent issued decision dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 153 Tm (schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.) Tj
+1 0 0 1 40 142 Tm (  - agent issued decision dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 131 Tm (schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.) Tj
+1 0 0 1 40 120 Tm (  - agent issued decision dec_demo_bad_s37_2026w40) Tj
+1 0 0 1 40 109 Tm (schedule_hash=sha256:cc0aaf3568a5520af6b7d4ce16aa61553fc58d0a523909bd76721f1a2d455441.) Tj
+ET
+endstream
+endobj
+5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000056 00000 n 
+0000000111 00000 n 
+0000000235 00000 n 
+0000005403 00000 n 
+trailer<< /Size 6 /Root 1 0 R >>
+startxref
+5471
+%%EOF
