@@ -1,0 +1,335 @@
+{
+  "$schema": "bc_schedule_agent_ruleset/1.0",
+  "version": "esa_bc_v1",
+  "jurisdiction": "British Columbia, Canada",
+  "statute": "Employment Standards Act, RSBC 1996, c. 113",
+  "source_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+  "week_boundary": {
+    "start": "sunday_00:00",
+    "end": "saturday_24:00",
+    "section": "1"
+  },
+  "notes": "Constraint shape ported from KitchenStack bc_labor_law.json plus ESA s.37 averaging packet terms. No KS_AI import. Decision support, not legal advice.",
+  "rules": [
+    {
+      "id": "bc-esa-s32-meal-break",
+      "section": "32(1)",
+      "title": "Meal Break Required",
+      "effect": "refuse",
+      "constraint": {
+        "type": "max_consecutive_hours_without_break",
+        "value": 5,
+        "break_minimum_minutes": 30
+      }
+    },
+    {
+      "id": "bc-esa-s32-paid-meal-break",
+      "section": "32(2)",
+      "title": "Paid Meal Break If Working",
+      "effect": "count_as_hours",
+      "constraint": {
+        "type": "meal_break_paid_if_working",
+        "value": true
+      }
+    },
+    {
+      "id": "bc-esa-s33-split-shift",
+      "section": "33",
+      "title": "Split Shift Maximum Span",
+      "effect": "refuse",
+      "constraint": {
+        "type": "max_split_shift_span_hours",
+        "value": 12
+      }
+    },
+    {
+      "id": "bc-esa-s34-min-daily-hours",
+      "section": "34(1)",
+      "title": "Minimum Daily Hours (2 hours)",
+      "effect": "refuse",
+      "constraint": {
+        "type": "min_shift_hours",
+        "value": 2
+      }
+    },
+    {
+      "id": "bc-esa-s34-min-daily-hours-long",
+      "section": "34(2)",
+      "title": "Minimum Daily Hours (4 hours for 8+ scheduled)",
+      "effect": "refuse",
+      "constraint": {
+        "type": "min_shift_hours_if_scheduled_over_8",
+        "scheduled_threshold": 8,
+        "min_pay_hours": 4
+      }
+    },
+    {
+      "id": "bc-esa-s35-daily-overtime-threshold",
+      "section": "35(1)",
+      "title": "Daily Overtime Threshold",
+      "effect": "ot_propose",
+      "constraint": {
+        "type": "daily_overtime_threshold_hours",
+        "value": 8
+      }
+    },
+    {
+      "id": "bc-esa-s40-overtime-rates",
+      "section": "40(1)",
+      "title": "Overtime Pay Rates (standard regime)",
+      "effect": "ot_propose",
+      "constraint": {
+        "type": "overtime_rate_tiers",
+        "daily_1_5x_after_hours": 8,
+        "daily_2x_after_hours": 12,
+        "weekly_1_5x_after_hours": 40,
+        "weekly_counts_first_8_per_day": true
+      }
+    },
+    {
+      "id": "bc-esa-s36-weekly-rest",
+      "section": "36(1)",
+      "title": "Weekly Rest Period (32 hours)",
+      "effect": "ot_propose",
+      "constraint": {
+        "type": "min_weekly_consecutive_rest_hours",
+        "value": 32,
+        "premium_multiplier": 1.5
+      }
+    },
+    {
+      "id": "bc-esa-s36-between-shifts",
+      "section": "36(2)",
+      "title": "Minimum Rest Between Shifts (8 hours)",
+      "effect": "refuse_or_ot_propose",
+      "constraint": {
+        "type": "min_hours_between_shifts",
+        "value": 8
+      }
+    },
+    {
+      "id": "bc-esa-s39-no-excessive-hours",
+      "section": "39",
+      "title": "No Excessive Hours",
+      "effect": "refuse",
+      "constraint": {
+        "type": "max_reasonable_daily_hours",
+        "soft_limit": 12,
+        "hard_limit": 16
+      }
+    },
+    {
+      "id": "bc-esa-s16-minimum-wage",
+      "section": "16.1(1)",
+      "title": "Minimum Wage",
+      "effect": "refuse",
+      "constraint": {
+        "type": "min_hourly_wage_cad",
+        "value": 16.75,
+        "effective_date": "2024-06-01"
+      }
+    },
+    {
+      "id": "bc-esa-s44-stat-holiday-entitlement",
+      "section": "44",
+      "title": "Statutory Holiday Entitlement",
+      "effect": "appendix_callout",
+      "constraint": {
+        "type": "stat_holiday_eligibility",
+        "min_employment_days": 30,
+        "min_worked_days_in_preceding_30": 15
+      }
+    },
+    {
+      "id": "bc-esa-s46-stat-holiday-pay",
+      "section": "46",
+      "title": "Statutory Holiday Pay Rates",
+      "effect": "appendix_callout",
+      "constraint": {
+        "type": "stat_holiday_pay_rates",
+        "rate_first_12h": 1.5,
+        "rate_over_12h": 2.0,
+        "plus_average_day_pay": true
+      }
+    },
+    {
+      "id": "bc-esa-stat-holidays-list",
+      "section": "1(1)",
+      "title": "BC Statutory Holidays",
+      "effect": "appendix_callout",
+      "constraint": {
+        "type": "statutory_holidays_list",
+        "holidays": [
+          "New Year's Day",
+          "Family Day",
+          "Good Friday",
+          "Victoria Day",
+          "Canada Day",
+          "British Columbia Day",
+          "Labour Day",
+          "National Day for Truth and Reconciliation",
+          "Thanksgiving Day",
+          "Remembrance Day",
+          "Christmas Day"
+        ]
+      }
+    },
+    {
+      "id": "bc-esa-s37-packet-in-writing",
+      "section": "37(2)",
+      "title": "Averaging agreement must be in writing",
+      "effect": "packet_term",
+      "constraint": {
+        "type": "averaging_packet_term",
+        "term": "in_writing",
+        "required": true
+      }
+    },
+    {
+      "id": "bc-esa-s37-packet-signed-both",
+      "section": "37(2)(a)",
+      "title": "Signed by employer and that employee before start date",
+      "effect": "packet_term",
+      "constraint": {
+        "type": "averaging_packet_term",
+        "term": "signed_by_employer_and_employee_before_start",
+        "required": true,
+        "one_employee_not_group": true
+      }
+    },
+    {
+      "id": "bc-esa-s37-packet-length",
+      "section": "37(2)",
+      "title": "Averaging period length 1–4 weeks",
+      "effect": "packet_term",
+      "constraint": {
+        "type": "averaging_packet_term",
+        "term": "period_weeks",
+        "allowed_values": [1, 2, 3, 4]
+      }
+    },
+    {
+      "id": "bc-esa-s37-packet-daily-schedule",
+      "section": "37(2)",
+      "title": "Work schedule for each day in the period",
+      "effect": "packet_term",
+      "constraint": {
+        "type": "averaging_packet_term",
+        "term": "daily_schedule_present",
+        "required": true
+      }
+    },
+    {
+      "id": "bc-esa-s37-packet-repeat-count",
+      "section": "37(2)",
+      "title": "Repeat count stated (including zero)",
+      "effect": "packet_term",
+      "constraint": {
+        "type": "averaging_packet_term",
+        "term": "repeat_count_stated",
+        "allow_zero": true
+      }
+    },
+    {
+      "id": "bc-esa-s37-packet-dates",
+      "section": "37(2)",
+      "title": "Start date and expiry date required",
+      "effect": "packet_term",
+      "constraint": {
+        "type": "averaging_packet_term",
+        "term": "start_and_expiry_dates",
+        "required": true
+      }
+    },
+    {
+      "id": "bc-esa-s37-packet-scheduled-hours",
+      "section": "37(3)",
+      "title": "Scheduled hours at or under 40 (or average 40)",
+      "effect": "packet_term",
+      "constraint": {
+        "type": "averaging_packet_term",
+        "term": "scheduled_hours_cap",
+        "max_average_weekly_hours": 40
+      }
+    },
+    {
+      "id": "bc-esa-s37-packet-copy-received",
+      "section": "37(2)(c)",
+      "title": "Employee received a copy before the period starts",
+      "effect": "packet_term",
+      "constraint": {
+        "type": "averaging_packet_term",
+        "term": "copy_received_before_start",
+        "required": true
+      }
+    },
+    {
+      "id": "bc-esa-s37-packet-week-in-range",
+      "section": "37",
+      "title": "Draft week sits inside start and expiry",
+      "effect": "packet_term",
+      "constraint": {
+        "type": "averaging_packet_term",
+        "term": "draft_week_within_packet_dates",
+        "required": true
+      }
+    },
+    {
+      "id": "bc-esa-s37-ot-over-12-daily",
+      "section": "37(4)",
+      "title": "Averaging: over 12 hours in a day is 2x",
+      "effect": "ot_propose",
+      "constraint": {
+        "type": "averaging_overtime",
+        "daily_2x_after_hours": 12
+      }
+    },
+    {
+      "id": "bc-esa-s37-ot-beyond-agreed-day",
+      "section": "37(6)",
+      "title": "Averaging: time beyond agreed day",
+      "effect": "ot_propose",
+      "constraint": {
+        "type": "averaging_overtime",
+        "beyond_agreed_day": {
+          "1_5x_when_extra_over_8_or_scheduled_ge_8": true,
+          "2x_over_12": true
+        }
+      }
+    },
+    {
+      "id": "bc-esa-s37-ot-average-weekly",
+      "section": "37(5)",
+      "title": "Averaging: average over 40 hours/week in period",
+      "effect": "ot_propose",
+      "constraint": {
+        "type": "averaging_overtime",
+        "weekly_1_5x_after_average_hours": 40,
+        "remove_daily_ot_already_counted": true
+      }
+    },
+    {
+      "id": "bc-esa-s37-rest-premium",
+      "section": "37(8)",
+      "title": "Averaging: 32-hour free interval rest premium",
+      "effect": "ot_propose",
+      "constraint": {
+        "type": "averaging_rest_premium",
+        "min_consecutive_rest_hours": 32,
+        "one_week_section": "37(8)",
+        "longer_section": "37(9)"
+      }
+    },
+    {
+      "id": "bc-esa-s37-schedule-change",
+      "section": "37(10)",
+      "title": "Agreed schedule change needs employee written request",
+      "effect": "packet_note",
+      "constraint": {
+        "type": "averaging_schedule_change",
+        "requires_employee_written_request": true,
+        "same_total_hours": true
+      }
+    }
+  ]
+}
