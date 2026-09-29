@@ -1,0 +1,32 @@
+{
+  "history_max_weeks": 8,
+  "rows": [
+    {
+      "decision_id": "dec_seed_ot_week",
+      "exhibit_paths": {
+        "audit_json": "weeks/2026-09-13_dec_seed_ot_week/audit.json"
+      },
+      "gate_snapshot_hash": "sha256:gate_seed_dec_seed_ot_week",
+      "history_prior_week_starts": [],
+      "issued_at": "2026-09-20T12:03:00Z",
+      "parameter_shelf_id": "shelf_seed_dec_seed_ot_week",
+      "schedule_hash": "sha256:seed_dec_seed_ot_week",
+      "week_dir": "weeks/2026-09-13_dec_seed_ot_week",
+      "week_start": "2026-09-13"
+    },
+    {
+      "decision_id": "dec_seed_zero_ot",
+      "exhibit_paths": {
+        "audit_json": "weeks/2026-09-20_dec_seed_zero_ot/audit.json"
+      },
+      "gate_snapshot_hash": "sha256:gate_seed_dec_seed_zero_ot",
+      "history_prior_week_starts": [],
+      "issued_at": "2026-09-20T12:03:00Z",
+      "parameter_shelf_id": "shelf_seed_dec_seed_zero_ot",
+      "schedule_hash": "sha256:seed_dec_seed_zero_ot",
+      "week_dir": "weeks/2026-09-20_dec_seed_zero_ot",
+      "week_start": "2026-09-20"
+    }
+  ],
+  "schema_version": "1"
+}

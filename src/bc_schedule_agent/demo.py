@@ -14,7 +14,7 @@ from bc_schedule_agent.composer import compose_week
 from bc_schedule_agent.exhibit import event_to_prose, write_exhibits
 from bc_schedule_agent.export import ExportBlocked, pending_ot_lines, schedule_hash
 from bc_schedule_agent.gates import approve_ot, refuse_ot
-from bc_schedule_agent.history import default_history_root
+from bc_schedule_agent.history import WeekHistoryStore, default_history_root
 from bc_schedule_agent.ingest import (
     parse_availability_sheet,
     parse_averaging_packet,
@@ -36,10 +36,12 @@ from bc_schedule_agent.models import (
     TimeOffRequest,
 )
 from bc_schedule_agent.planner import plan_coverage
-from bc_schedule_agent.replay import ReplayInputs, replay
+from bc_schedule_agent.priors import HistoryPriors, build_history_priors
+from bc_schedule_agent.replay import ReplayInputs, load_replay_envelope, replay
 from bc_schedule_agent.ruleset import load_ruleset
 
-WEEK_START = date(2026, 9, 27)  # Sunday (ESA s.1)
+WEEK_START = date(2026, 9, 27)  # Sunday (ESA s.1) — default draft week
+FIXTURE_WEEK_START = WEEK_START  # disk fixtures under fixtures/demo/ use this week
 
 SCENARIO_IDS = (
     "busy_week_zero_ot",
@@ -51,6 +53,10 @@ SCENARIO_IDS = (
 
 def fixtures_dir() -> Path:
     return Path(__file__).resolve().parents[2] / "fixtures" / "demo"
+
+
+def history_fixtures_dir() -> Path:
+    return Path(__file__).resolve().parents[2] / "fixtures" / "history"
 
 
 SHEET_FILENAMES: dict[str, str] = {
@@ -95,12 +101,34 @@ def _sales_csv(*rows: str) -> bytes:
     return (header + "\n".join(rows) + "\n").encode("utf-8")
 
 
-def _week_avail(*employees: str, days: range | list[int] | None = None) -> bytes:
+def _shift_iso_dates(text: str, delta_days: int) -> str:
+    """Rewrite YYYY-MM-DD tokens by a fixed day delta (fixture week rematerialize)."""
+    if delta_days == 0:
+        return text
+
+    def _repl(match: re.Match[str]) -> str:
+        return (date.fromisoformat(match.group(0)) + timedelta(days=delta_days)).isoformat()
+
+    return re.sub(r"\d{4}-\d{2}-\d{2}", _repl, text)
+
+
+def _shift_bytes_dates(raw: bytes, delta_days: int) -> bytes:
+    if delta_days == 0 or not raw:
+        return raw
+    return _shift_iso_dates(raw.decode("utf-8"), delta_days).encode("utf-8")
+
+
+def _week_avail(
+    *employees: str,
+    days: range | list[int] | None = None,
+    week_start: date | None = None,
+) -> bytes:
+    start = week_start or WEEK_START
     day_list = list(range(1, 6) if days is None else days)
     rows: list[str] = []
     for name in employees:
         for i in day_list:
-            on = WEEK_START + timedelta(days=i)
+            on = start + timedelta(days=i)
             rows.append(f"{name},{on.isoformat()},06:00,22:00")
     return _avail_csv(*rows)
 
@@ -123,8 +151,9 @@ def _four_by_ten_schedule(start: date) -> list[dict[str, Any]]:
     return days
 
 
-def _bad_s37_packet() -> dict[str, Any]:
+def _bad_s37_packet(*, week_start: date | None = None) -> dict[str, Any]:
     """Missing employee signature → packet_rejected (s.37(2)(a)(ii))."""
+    start = week_start or WEEK_START
     return {
         "packet_id": "agr_sam_unsigned",
         "employee": "sam",
@@ -134,13 +163,13 @@ def _bad_s37_packet() -> dict[str, Any]:
         "signed_before_start": True,
         "period_weeks": 1,
         "repeat_count": 0,
-        "start_date": WEEK_START.isoformat(),
-        "expiry_date": (WEEK_START + timedelta(days=6)).isoformat(),
+        "start_date": start.isoformat(),
+        "expiry_date": (start + timedelta(days=6)).isoformat(),
         "copy_received_before_start": True,
         "employer_signature_date": "2026-09-20",
         "employee_signature_date": None,
         "copy_received_date": "2026-09-21",
-        "daily_schedule": _four_by_ten_schedule(WEEK_START),
+        "daily_schedule": _four_by_ten_schedule(start),
     }
 
 
@@ -452,6 +481,93 @@ def ensure_fixture_files(
     return out
 
 
+def ensure_history_fixtures(
+    dest: Path | None = None,
+    *,
+    force: bool = False,
+) -> Path:
+    """Copy small synthetic history seed into a history root when empty.
+
+    Disk wins unless ``force=True``. Seed shows growth from 1 → few weeks —
+    not a fill of ``history_max_weeks``.
+    """
+    src = history_fixtures_dir()
+    if not src.is_dir() or not (src / "index.json").is_file():
+        raise FileNotFoundError(f"history fixtures missing: {src}")
+    out = Path(dest) if dest is not None else default_history_root()
+    out.mkdir(parents=True, exist_ok=True)
+    index_path = out / "index.json"
+    if index_path.is_file() and not force:
+        return out
+
+    import shutil
+
+    # Replace dest contents from seed (force or empty).
+    for child in ("index.json", "weeks"):
+        target = out / child
+        source = src / child
+        if not source.exists():
+            continue
+        if target.exists():
+            if target.is_dir():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
+        if source.is_dir():
+            shutil.copytree(source, target)
+        else:
+            shutil.copy2(source, target)
+    return out
+
+
+def _ot_label_from_audit(audit_path: Path | None) -> str:
+    """zero-OT vs OT-with-reason from week audit events."""
+    if audit_path is None or not audit_path.is_file():
+        return "zero-OT"
+    raw = json.loads(audit_path.read_text(encoding="utf-8"))
+    for event in list(raw.get("events") or []):
+        kind = str(event.get("kind") or "")
+        if kind in {"ot_approved", "ot_proposed"}:
+            # Issued OT-with-reason means a human approved; proposed alone is
+            # still "needs OT" for shelf display after issue (approved on chain).
+            if kind == "ot_approved":
+                return "OT-with-reason"
+            # Fall through — issued weeks with only ot_proposed shouldn't appear
+            # (issue requires approve). Treat approved as the positive marker.
+    # Also accept issued evidence that names an OT approve path via prose.
+    for event in list(raw.get("events") or []):
+        if str(event.get("kind") or "") == "ot_approved":
+            return "OT-with-reason"
+    return "zero-OT"
+
+
+def history_shelf_rows(
+    store: WeekHistoryStore | None = None,
+    *,
+    history_root: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Active history rows for DEMO shelf UI."""
+    hist = store or WeekHistoryStore(history_root or default_history_root())
+    index = hist.load_index()
+    rows: list[dict[str, Any]] = []
+    for row in index.rows:
+        audit_path = hist.root / row.week_dir / "audit.json"
+        if not audit_path.is_file():
+            listed = row.exhibit_paths.get("audit_json")
+            audit_path = Path(listed) if listed else None
+        label = _ot_label_from_audit(audit_path if isinstance(audit_path, Path) else None)
+        rows.append(
+            {
+                "week_start": row.week_start,
+                "decision_id": row.decision_id,
+                "ot_label": label,
+                "parameter_shelf_id": row.parameter_shelf_id,
+                "schedule_hash": row.schedule_hash,
+            }
+        )
+    return rows
+
+
 @dataclass
 class DemoSession:
     """In-memory one-screen state for the local demo."""
@@ -481,13 +597,101 @@ class DemoSession:
     input_source: str = "none"  # disk | upload | none
     parameter_shelf: ParameterShelf | None = None
     shelf_root: Path | None = None
+    week_start: date = WEEK_START
+    history_root: Path | None = None
+    freeze_parameter_shelf: bool = False
+    prior_load: dict[str, Any] | None = None
+    history_priors_week_starts: list[str] = field(default_factory=list)
+    last_history_priors: HistoryPriors | None = None
 
     def reset(self) -> None:
         root = self.fixtures_root
         shelf_root = self.shelf_root
+        history_root = self.history_root
+        week_start = self.week_start
         self.__dict__.update(DemoSession().__dict__)
         self.fixtures_root = root
         self.shelf_root = shelf_root
+        self.history_root = history_root
+        self.week_start = week_start
+
+    def history_store(self) -> WeekHistoryStore:
+        return WeekHistoryStore(self.history_root or default_history_root())
+
+    def set_week_start(self, week_start: date | str) -> dict[str, Any]:
+        """Unlock draft week from the single-constant lock (Sunday expected)."""
+        ws = (
+            week_start
+            if isinstance(week_start, date)
+            else date.fromisoformat(str(week_start))
+        )
+        self.week_start = ws
+        return self.to_state()
+
+    def history_shelf(self) -> list[dict[str, Any]]:
+        return history_shelf_rows(self.history_store())
+
+    def load_prior_week(
+        self,
+        week_start: str,
+        *,
+        adopt_shelf: bool = False,
+        decision_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Consult a prior issued week.
+
+        Default **prior-only**: soft priors stay on; active shelf unchanged.
+        Explicit **adopt_shelf**: bind that week's parameter shelf as hard authority
+        (freeze until next scenario draft rebuilds).
+        """
+        store = self.history_store()
+        index = store.load_index()
+        matches = [r for r in index.rows if r.week_start == str(week_start)]
+        if decision_id:
+            matches = [r for r in matches if r.decision_id == decision_id]
+        if not matches:
+            raise ValueError(
+                f"no active history row for week_start={week_start!r}"
+                + (f" decision_id={decision_id!r}" if decision_id else "")
+            )
+        row = matches[-1]
+        mode = "adopt-shelf" if adopt_shelf else "prior-only"
+        self.prior_load = {
+            "mode": mode,
+            "week_start": row.week_start,
+            "decision_id": row.decision_id,
+            "parameter_shelf_id": row.parameter_shelf_id,
+        }
+        if adopt_shelf:
+            if not row.parameter_shelf_id:
+                raise ValueError("prior week has no parameter_shelf_id to adopt")
+            shelf_store = ParameterShelfStore(self.shelf_root or default_shelf_root())
+            try:
+                shelf = shelf_store.load(row.parameter_shelf_id)
+            except FileNotFoundError as exc:
+                raise ValueError(
+                    f"parameter shelf {row.parameter_shelf_id} not on disk"
+                ) from exc
+            shelf_store.save(shelf, set_active=True)
+            self.parameter_shelf = shelf
+            self.freeze_parameter_shelf = True
+            # Best-effort: restore availability / time-off / packets from envelope.
+            envelope = store.root / row.week_dir / "replay_inputs.json"
+            if envelope.is_file():
+                inputs = load_replay_envelope(envelope)
+                self.availability_raw = inputs.availability_raw
+                self.time_off_raw = inputs.time_off_raw
+                self.packet_payloads = list(inputs.averaging_packets)
+                if inputs.demand:
+                    self.demand_override_raw = json.dumps(
+                        inputs.demand, indent=2, sort_keys=True
+                    ).encode("utf-8")
+                self._set_input_previews()
+        else:
+            # prior-only — do not overwrite active shelf
+            self.freeze_parameter_shelf = False
+        self.last_error = None
+        return self.to_state()
 
     def _set_input_previews(self) -> None:
         self.inputs = {
@@ -534,24 +738,28 @@ class DemoSession:
             self.demand = plan_coverage(
                 self.hours_of_operation,
                 self.sales_projections,
-                WEEK_START,
+                self.week_start,
                 chain=self.chain,
             )
         self.demand_payload = demand_to_payload(self.demand)
         self._set_input_previews()
 
-        self.parameter_shelf = build_parameter_shelf(
-            hours_of_operation=self.hours_of_operation,
-            sales_projections=self.sales_projections,
-            availability_raw=self.availability_raw,
-            time_off_raw=self.time_off_raw,
-            averaging_packets=list(self.packet_payloads) or None,
-            demand_override_raw=self.demand_override_raw,
-            availability=self.availability,
-        )
-        ParameterShelfStore(self.shelf_root or default_shelf_root()).save(
-            self.parameter_shelf
-        )
+        if self.freeze_parameter_shelf and self.parameter_shelf is not None:
+            # Adopted shelf stays hard authority until a fresh scenario clears freeze.
+            pass
+        else:
+            self.parameter_shelf = build_parameter_shelf(
+                hours_of_operation=self.hours_of_operation,
+                sales_projections=self.sales_projections,
+                availability_raw=self.availability_raw,
+                time_off_raw=self.time_off_raw,
+                averaging_packets=list(self.packet_payloads) or None,
+                demand_override_raw=self.demand_override_raw,
+                availability=self.availability,
+            )
+            ParameterShelfStore(self.shelf_root or default_shelf_root()).save(
+                self.parameter_shelf
+            )
         observed = observed_input_hashes(
             hours_of_operation=self.hours_of_operation,
             sales_projections=self.sales_projections,
@@ -560,6 +768,11 @@ class DemoSession:
             averaging_packets=list(self.packet_payloads) or None,
             demand_override_raw=self.demand_override_raw,
         )
+
+        hist = self.history_store()
+        priors = build_history_priors(hist)
+        self.history_priors_week_starts = list(priors.week_starts)
+        self.last_history_priors = priors if priors.week_starts else None
 
         self.result = compose_week(
             self.demand,
@@ -570,25 +783,60 @@ class DemoSession:
             prefer_zero_ot=True,
             parameter_shelf=self.parameter_shelf,
             observed_shelf_hashes=observed,
+            history_priors=self.last_history_priors,
         )
         self.last_error = None
         self.exhibit_paths = {}
         self.replay_sentence = None
         return self.to_state()
 
-    def run_scenario(self, scenario_id: str, *, ask: str | None = None) -> dict[str, Any]:
+    def run_scenario(
+        self,
+        scenario_id: str,
+        *,
+        ask: str | None = None,
+        week_start: date | str | None = None,
+    ) -> dict[str, Any]:
         """Draft a week from disk fixtures (generators seed only via ensure_fixture_files)."""
+        if week_start is not None:
+            self.set_week_start(week_start)
         root = self.fixtures_root or fixtures_dir()
         scenario = load_scenario_from_disk(scenario_id, root=root)
+        preserved_week = self.week_start
+        preserved_history = self.history_root
+        preserved_fixtures = self.fixtures_root
+        preserved_shelf_root = self.shelf_root
         self.reset()
+        self.week_start = preserved_week
+        self.history_root = preserved_history
+        self.fixtures_root = preserved_fixtures
+        self.shelf_root = preserved_shelf_root
+        self.freeze_parameter_shelf = False
+        self.prior_load = None
         self.scenario_id = scenario.scenario_id
         self.ask = ask if ask is not None else scenario.ask
+        delta = (self.week_start - FIXTURE_WEEK_START).days
         self.decision_id = scenario.decision_id
+        if delta != 0:
+            # Distinct decision id per selectable week so history can grow.
+            iso = self.week_start.isoformat().replace("-", "")
+            self.decision_id = f"{scenario.decision_id}_{iso}"
         self.hours_of_operation = scenario.hours_of_operation
         self.sales_projections = scenario.sales_projections
-        self.availability_raw = scenario.availability_raw
-        self.time_off_raw = scenario.time_off_raw
-        self.packet_payloads = list(scenario.averaging_packets)
+        self.availability_raw = _shift_bytes_dates(scenario.availability_raw, delta)
+        self.time_off_raw = (
+            _shift_bytes_dates(scenario.time_off_raw, delta)
+            if scenario.time_off_raw
+            else scenario.time_off_raw
+        )
+        if scenario.averaging_packets:
+            shifted: list[dict[str, Any]] = []
+            for packet in scenario.averaging_packets:
+                blob = json.dumps(packet)
+                shifted.append(json.loads(_shift_iso_dates(blob, delta)))
+            self.packet_payloads = shifted
+        else:
+            self.packet_payloads = []
         self.demand_override_raw = None
         self.input_source = "disk"
         return self._compose_from_session_inputs()
@@ -717,7 +965,7 @@ class DemoSession:
             week_start=self.demand.week_start,
             out_dir=target,
             timestamp="2026-09-29T19:05:00Z",
-            history_root=default_history_root(),
+            history_root=self.history_root or default_history_root(),
             parameter_shelf_id=(
                 self.parameter_shelf.parameter_shelf_id
                 if self.parameter_shelf is not None
@@ -753,6 +1001,7 @@ class DemoSession:
             inputs,
             expected_schedule_hash=bundle.issue.schedule_hash,
             expected_gate_snapshot=bundle.issue.gate_snapshot,
+            history_priors=self.last_history_priors,
         )
         issued_pending = len(pending_ot_lines(self.result.ot_proposals))
         who_why = _ot_approver_sentence(self.result.ot_proposals)
@@ -770,7 +1019,7 @@ class DemoSession:
 
     def to_state(self) -> dict[str, Any]:
         week_days = [
-            (WEEK_START + timedelta(days=i)).isoformat() for i in range(7)
+            (self.week_start + timedelta(days=i)).isoformat() for i in range(7)
         ]
         placed_rows: list[dict[str, Any]] = []
         if self.result is not None:
@@ -810,11 +1059,14 @@ class DemoSession:
         return {
             "scenario_id": self.scenario_id,
             "ask": self.ask,
-            "week_start": WEEK_START.isoformat(),
+            "week_start": self.week_start.isoformat(),
             "week_days": week_days,
             "input_source": self.input_source,
             "roster": roster,
             "parameter_shelf": shelf_state,
+            "history_shelf": self.history_shelf(),
+            "history_priors_week_starts": list(self.history_priors_week_starts),
+            "prior_load": dict(self.prior_load) if self.prior_load else None,
             "inputs": dict(self.inputs),
             "placed": placed_rows,
             "ot_proposals": ot_rows,
@@ -861,14 +1113,32 @@ def _ot_row(o: OvertimeProposal) -> dict[str, Any]:
 
 
 def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
-    """Headless ~15-minute proof: busy zero-OT → peak OT → time-off → bad packet."""
+    """Headless ~15-minute proof: busy → peak OT → time-off → bad packet → history continuity."""
     ensure_fixture_files()
     root = out_root or (
         Path(__file__).resolve().parents[2] / "artifacts" / "demo" / "smoke"
     )
     root.mkdir(parents=True, exist_ok=True)
-    session = DemoSession()
+    history_root = root / "history"
+    shelf_root = root / "parameters"
+    ensure_history_fixtures(history_root, force=True)
+    session = DemoSession(history_root=history_root, shelf_root=shelf_root)
     report: dict[str, Any] = {"steps": []}
+
+    # 0. Seeded history shelf visible before first issue of this run
+    seeded = session.history_shelf()
+    assert len(seeded) >= 1
+    assert all("week_start" in r and "decision_id" in r and "ot_label" in r for r in seeded)
+    assert {r["ot_label"] for r in seeded} <= {"zero-OT", "OT-with-reason"}
+    assert "OT-with-reason" in {r["ot_label"] for r in seeded}
+    assert "zero-OT" in {r["ot_label"] for r in seeded}
+    report["steps"].append(
+        {
+            "id": "history_seed",
+            "shelf_size": len(seeded),
+            "ot_labels": [r["ot_label"] for r in seeded],
+        }
+    )
 
     # 1. Busy week → zero OT download + replay
     state = session.run_scenario("busy_week_zero_ot")
@@ -876,15 +1146,28 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
     assert state["pending_ot_count"] == 0
     assert state["inputs"]["hours_of_operation"]["rows"] >= 1
     assert state["inputs"]["sales_projections"]["rows"] >= 1
+    assert state["parameter_shelf"] is not None
+    assert state["parameter_shelf"]["parameter_shelf_id"]
+    assert state["parameter_shelf"]["derived_roster"]
+    assert state["parameter_shelf"]["hashes"]
+    # prior-only load of a seeded week (does not overwrite shelf)
+    prior_ws = seeded[0]["week_start"]
+    prior_state = session.load_prior_week(prior_ws, adopt_shelf=False)
+    assert prior_state["prior_load"]["mode"] == "prior-only"
+    shelf_id_before = state["parameter_shelf"]["parameter_shelf_id"]
+    assert prior_state["parameter_shelf"]["parameter_shelf_id"] == shelf_id_before
     state = session.write_downloads(root / "busy_week_zero_ot")
     assert state["replay_sentence"]
     assert Path(state["exhibit_paths"]["audit_json"]).is_file()
+    after_busy = session.history_shelf()
+    assert len(after_busy) == len(seeded) + 1
     report["steps"].append(
         {
             "id": "busy_week_zero_ot",
             "download_enabled": state["download_enabled"],
             "replay": state["replay_sentence"],
             "paths": state["exhibit_paths"],
+            "shelf_size": len(after_busy),
         }
     )
 
@@ -966,6 +1249,62 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
             "packet_status": state["packet_status"],
             "audit_hit": rejected[0],
             "pending_ot_count": state["pending_ot_count"],
+        }
+    )
+
+    # 5. Continuity: next week under priors → shelf grows; download gate still clean
+    before = len(session.history_shelf())
+    next_week = WEEK_START + timedelta(days=7)
+    state = session.run_scenario("busy_week_zero_ot", week_start=next_week)
+    assert state["week_start"] == next_week.isoformat()
+    assert state["download_enabled"] is True
+    assert WEEK_START.isoformat() in state["history_priors_week_starts"] or any(
+        r["week_start"] == WEEK_START.isoformat() for r in state["history_shelf"]
+    )
+    assert state["history_priors_week_starts"], "expected soft priors from history"
+    # prior-only default already active; optional adopt of just-issued busy shelf
+    busy_row = next(
+        r
+        for r in state["history_shelf"]
+        if r["week_start"] == WEEK_START.isoformat()
+        and "busy" in r["decision_id"]
+    )
+    # Adopt shelf from the issued busy week (hashes must match current sheets
+    # only when sheets match — here we recompose same scenario at a new week,
+    # so adopt is exercised as an explicit API after issue path separately).
+    adopt_probe = DemoSession(history_root=history_root, shelf_root=shelf_root)
+    adopt_probe.run_scenario("busy_week_zero_ot")
+    adopt_probe.write_downloads(root / "adopt_probe")
+    adopt_id = adopt_probe.parameter_shelf.parameter_shelf_id  # type: ignore[union-attr]
+    # Same sheets → adopt freezes without mismatch
+    adopt_probe.load_prior_week(
+        WEEK_START.isoformat(),
+        adopt_shelf=True,
+        decision_id=adopt_probe.decision_id,
+    )
+    assert adopt_probe.prior_load["mode"] == "adopt-shelf"
+    assert adopt_probe.parameter_shelf is not None
+    assert adopt_probe.parameter_shelf.parameter_shelf_id == adopt_id
+
+    state = session.write_downloads(root / "busy_week_under_priors")
+    assert state["download_enabled"] is True
+    after = len(session.history_shelf())
+    assert after == before + 1
+    issued = next(
+        e for e in session.chain.events if e.kind == "issued"
+    )
+    prior_starts = list(issued.evidence.get("history_prior_week_starts") or [])
+    assert prior_starts, "issued evidence must name history_prior_week_starts"
+    report["steps"].append(
+        {
+            "id": "history_continuity",
+            "week_start": next_week.isoformat(),
+            "shelf_before": before,
+            "shelf_after": after,
+            "history_prior_week_starts": prior_starts,
+            "priors": state["history_priors_week_starts"],
+            "busy_row": busy_row,
+            "adopt_mode": adopt_probe.prior_load["mode"],
         }
     )
 

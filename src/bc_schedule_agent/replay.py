@@ -102,7 +102,11 @@ def _normalize_gate_snapshot(snapshot: dict[str, Any] | None) -> dict[str, Any]:
     return {"ot_approvals": ot, "timeoff_decisions": toff}
 
 
-def rebuild_week(inputs: ReplayInputs) -> tuple[ComposeResult, AuditChain]:
+def rebuild_week(
+    inputs: ReplayInputs,
+    *,
+    history_priors: Any | None = None,
+) -> tuple[ComposeResult, AuditChain]:
     """Rebuild a week from stored bytes + demand + current ruleset hash check."""
     ruleset = load_ruleset()
     if ruleset.content_hash != inputs.ruleset_hash:
@@ -140,6 +144,7 @@ def rebuild_week(inputs: ReplayInputs) -> tuple[ComposeResult, AuditChain]:
         chain=chain,
         averaging_packets=packets or None,
         prefer_zero_ot=inputs.prefer_zero_ot,
+        history_priors=history_priors,
     )
     return result, chain
 
@@ -149,12 +154,13 @@ def replay(
     *,
     expected_schedule_hash: str,
     expected_gate_snapshot: dict[str, Any] | None = None,
+    history_priors: Any | None = None,
 ) -> ReplayResult:
     """Rebuild and dual-check placement hash + gate snapshot against `issued`."""
     if not expected_schedule_hash:
         raise ReplayError("expected_schedule_hash is required")
 
-    result, chain = rebuild_week(inputs)
+    result, chain = rebuild_week(inputs, history_priors=history_priors)
     rebuilt = schedule_hash(result.placed)
     pending = sum(1 for p in result.ot_proposals if p.status == "PENDING_APPROVAL")
     refuse_count = sum(1 for e in chain.events if e.kind == "rule_refuse")

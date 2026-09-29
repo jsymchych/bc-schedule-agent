@@ -16,7 +16,13 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from bc_schedule_agent.demo import DemoSession, SCENARIO_IDS, ensure_fixture_files
+from bc_schedule_agent.demo import (
+    DemoSession,
+    SCENARIO_IDS,
+    WEEK_START,
+    ensure_fixture_files,
+    ensure_history_fixtures,
+)
 from bc_schedule_agent.export import ExportBlocked
 from bc_schedule_agent.gates import GateError
 
@@ -90,7 +96,7 @@ PAGE = """<!DOCTYPE html>
     padding: 1rem;
   }
   label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }
-  input[type="text"], select, textarea {
+  input[type="text"], input[type="date"], select, textarea {
     width: 100%;
     font: inherit;
     padding: 0.45rem 0.55rem;
@@ -200,15 +206,35 @@ PAGE = """<!DOCTYPE html>
   @media (max-width: 700px) {
     .gate-fields { grid-template-columns: 1fr; }
   }
+  #history-shelf, #parameters-panel {
+    font-size: 0.88rem;
+    line-height: 1.35;
+  }
+  #history-shelf table, #parameters-panel table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.35rem;
+  }
+  #history-shelf th, #history-shelf td,
+  #parameters-panel th, #parameters-panel td {
+    border: 1px solid var(--grid);
+    padding: 0.3rem 0.4rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  #history-shelf th, #parameters-panel th { background: #ebe4d6; }
+  .mono { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 0.78rem; }
 </style>
 </head>
 <body>
 <header>
   <h1>BC schedule agent</h1>
-  <p>Local proof — four inputs in, ESA-compliant week out. Synthetic names only. Decision support under the Employment Standards Act, not legal advice.</p>
+  <p>Local proof — four inputs in, ESA-compliant week out. History shelf + parameter shelf for continuity. Synthetic names only. Decision support under the Employment Standards Act, not legal advice.</p>
 </header>
 <main>
   <section class="panel">
+    <label for="week-start">Week start (Sunday)</label>
+    <input id="week-start" type="date" value="2026-09-27"/>
     <label for="scenario">Scenario</label>
     <select id="scenario">
       <option value="busy_week_zero_ot">Busy week — zero OT</option>
@@ -249,7 +275,16 @@ PAGE = """<!DOCTYPE html>
     <ul id="ot" class="ot-list"></ul>
   </section>
   <aside class="panel">
-    <h2 style="font-size:1.05rem;margin:0 0 0.5rem;">Audit drawer</h2>
+    <h2 style="font-size:1.05rem;margin:0 0 0.5rem;">History shelf</h2>
+    <div id="history-shelf"><p class="cell-empty">No issued weeks yet.</p></div>
+    <div class="row" style="margin-top:0.5rem;">
+      <button id="btn-prior-only" class="secondary" type="button" disabled>Load prior (prior-only)</button>
+      <button id="btn-adopt-shelf" class="secondary" type="button" disabled>Adopt shelf from week</button>
+    </div>
+    <p id="prior-status" class="status" style="margin-top:0.4rem;"></p>
+    <h2 style="font-size:1.05rem;margin:1rem 0 0.5rem;">Parameters</h2>
+    <div id="parameters-panel"><p class="cell-empty">No active parameter shelf.</p></div>
+    <h2 style="font-size:1.05rem;margin:1rem 0 0.5rem;">Audit drawer</h2>
     <div id="drawer"><p class="cell-empty">No events yet.</p></div>
   </aside>
 </main>
@@ -257,10 +292,12 @@ PAGE = """<!DOCTYPE html>
   Statute: https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01
   · Downloads stay off while any OT line is PENDING_APPROVAL or a rule_refuse is on the chain.
   · Agent cannot approve itself. Who approved OT and why is on the chain.
+  · History is soft prior; current parameter shelf is hard authority. Default reopen is prior-only.
 </footer>
 <script>
 const $ = (id) => document.getElementById(id);
 let lastState = {};
+let selectedHistory = null;
 
 async function api(path, body) {
   const res = await fetch(path, {
@@ -300,6 +337,57 @@ function renderInputs(inputs) {
   }).join("");
 }
 
+function renderHistory(rows) {
+  const box = $("history-shelf");
+  if (!rows || !rows.length) {
+    box.innerHTML = "<p class='cell-empty'>No issued weeks yet.</p>";
+    selectedHistory = null;
+    $("btn-prior-only").disabled = true;
+    $("btn-adopt-shelf").disabled = true;
+    return;
+  }
+  let html = "<table><thead><tr><th></th><th>week_start</th><th>decision_id</th><th>OT</th></tr></thead><tbody>";
+  rows.forEach((r, i) => {
+    const checked = selectedHistory && selectedHistory.week_start === r.week_start && selectedHistory.decision_id === r.decision_id ? "checked" : (i === rows.length - 1 && !selectedHistory ? "checked" : "");
+    html += `<tr><td><input type="radio" name="hist" data-ws="${r.week_start}" data-did="${r.decision_id}" ${checked}/></td>`
+      + `<td class="mono">${r.week_start}</td><td class="mono">${r.decision_id}</td><td>${r.ot_label}</td></tr>`;
+  });
+  html += "</tbody></table>";
+  box.innerHTML = html;
+  if (!selectedHistory) {
+    const last = rows[rows.length - 1];
+    selectedHistory = { week_start: last.week_start, decision_id: last.decision_id };
+  }
+  $("btn-prior-only").disabled = false;
+  $("btn-adopt-shelf").disabled = false;
+  box.querySelectorAll("input[name=hist]").forEach((el) => {
+    el.onchange = () => {
+      selectedHistory = { week_start: el.dataset.ws, decision_id: el.dataset.did };
+    };
+  });
+}
+
+function renderParameters(shelf) {
+  const box = $("parameters-panel");
+  if (!shelf) {
+    box.innerHTML = "<p class='cell-empty'>No active parameter shelf.</p>";
+    return;
+  }
+  const hashes = shelf.hashes || {};
+  const roster = (shelf.derived_roster || []).join(", ") || "—";
+  let html = `<p><strong>shelf id</strong> <span class="mono">${shelf.parameter_shelf_id || "—"}</span></p>`;
+  html += `<p><strong>staffing</strong> <span class="mono">${shelf.staffing_version || "—"}</span></p>`;
+  html += `<p><strong>roster</strong> ${roster}</p>`;
+  html += "<table><thead><tr><th>input</th><th>hash</th></tr></thead><tbody>";
+  Object.keys(hashes).forEach((k) => {
+    const v = hashes[k];
+    if (v == null) return;
+    html += `<tr><td>${k}</td><td class="mono">${v}</td></tr>`;
+  });
+  html += "</tbody></table>";
+  box.innerHTML = html;
+}
+
 function render(state) {
   lastState = state || {};
   const status = $("status");
@@ -325,7 +413,17 @@ function render(state) {
   $("btn-refuse").disabled = !hasPending;
   if (state.scenario_id) $("scenario").value = state.scenario_id;
   if (state.ask) $("ask").value = state.ask;
+  if (state.week_start) $("week-start").value = state.week_start;
   renderInputs(state.inputs);
+  renderHistory(state.history_shelf || []);
+  renderParameters(state.parameter_shelf);
+  const prior = $("prior-status");
+  if (state.prior_load) {
+    prior.textContent = `Loaded ${state.prior_load.week_start} (${state.prior_load.mode}).`;
+    prior.className = "status ok";
+  } else {
+    prior.textContent = "";
+  }
 
   const byDate = {};
   (state.week_days || []).forEach((d) => { byDate[d] = []; });
@@ -364,9 +462,10 @@ function render(state) {
 $("btn-run").onclick = async () => {
   try {
     const ask = $("ask").value.trim();
+    const week_start = $("week-start").value;
     const body = ask
-      ? { ask }
-      : { scenario_id: $("scenario").value };
+      ? { ask, week_start }
+      : { scenario_id: $("scenario").value, week_start };
     render(await api("/api/run", body));
   } catch (e) {
     $("status").textContent = String(e.message || e);
@@ -396,6 +495,23 @@ $("btn-refuse").onclick = async () => {
     $("status").className = "status warn";
   }
 };
+
+async function loadPrior(adopt_shelf) {
+  try {
+    if (!selectedHistory) throw new Error("select a history row");
+    render(await api("/api/load-prior", {
+      week_start: selectedHistory.week_start,
+      decision_id: selectedHistory.decision_id,
+      adopt_shelf: !!adopt_shelf,
+    }));
+  } catch (e) {
+    $("status").textContent = String(e.message || e);
+    $("status").className = "status warn";
+  }
+}
+
+$("btn-prior-only").onclick = () => loadPrior(false);
+$("btn-adopt-shelf").onclick = () => loadPrior(true);
 
 async function downloadType(kind, label) {
   try {
@@ -541,13 +657,36 @@ class DemoHandler(BaseHTTPRequestHandler):
             if path == "/api/run":
                 ask = str(body.get("ask") or "").strip()
                 scenario_id = str(body.get("scenario_id") or "").strip()
+                week_raw = body.get("week_start")
+                week_start = str(week_raw).strip() if week_raw else None
                 if ask:
+                    if week_start:
+                        SESSION.set_week_start(week_start)
                     state = SESSION.run_ask(ask)
                 elif scenario_id:
-                    state = SESSION.run_scenario(scenario_id)
+                    state = SESSION.run_scenario(
+                        scenario_id, week_start=week_start or None
+                    )
                 else:
-                    state = SESSION.run_scenario("busy_week_zero_ot")
+                    state = SESSION.run_scenario(
+                        "busy_week_zero_ot", week_start=week_start or None
+                    )
                 self._json(200, state)
+                return
+            if path == "/api/load-prior":
+                week_start = str(body.get("week_start") or "").strip()
+                if not week_start:
+                    raise ValueError("week_start required")
+                decision_id = str(body.get("decision_id") or "").strip() or None
+                adopt = bool(body.get("adopt_shelf"))
+                self._json(
+                    200,
+                    SESSION.load_prior_week(
+                        week_start,
+                        adopt_shelf=adopt,
+                        decision_id=decision_id,
+                    ),
+                )
                 return
             if path == "/api/approve-ot":
                 name = str(body.get("human_name") or "").strip()
@@ -605,10 +744,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args(argv)
     ensure_fixture_files()
+    ensure_history_fixtures()
     httpd = ThreadingHTTPServer((args.host, args.port), DemoHandler)
     print(
         f"BC schedule agent demo on http://{args.host}:{args.port}/ "
-        f"(scenarios: {', '.join(SCENARIO_IDS)})"
+        f"(scenarios: {', '.join(SCENARIO_IDS)}; default week_start={WEEK_START.isoformat()})"
     )
     try:
         httpd.serve_forever()

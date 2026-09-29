@@ -1,0 +1,67 @@
+{
+  "decision_id": "dec_seed_ot_week",
+  "events": [
+    {
+      "actor": "agent",
+      "event_id": "aud_seed_dec_seed_ot_week_ingest",
+      "evidence": {
+        "source": "fixture"
+      },
+      "kind": "ingest",
+      "prev_event_id": null,
+      "prose": "seed ingest for dec_seed_ot_week",
+      "subject": {
+        "rows": 3,
+        "sheet": "availability"
+      },
+      "timestamp": "2026-09-20T12:00:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_seed_dec_seed_ot_week_place",
+      "evidence": {},
+      "kind": "placement",
+      "prev_event_id": "aud_seed_dec_seed_ot_week_ingest",
+      "prose": "agent placed sam Mon 09:00\u201317:00.",
+      "subject": {
+        "date": "2026-09-14",
+        "employee": "sam",
+        "end": "17:00",
+        "start": "09:00"
+      },
+      "timestamp": "2026-09-20T12:01:00Z"
+    },
+    {
+      "actor": "Alex Rivera",
+      "event_id": "aud_seed_dec_seed_ot_week_ot",
+      "evidence": {
+        "reason": "Peak coverage \u2014 seed fixture"
+      },
+      "kind": "ot_approved",
+      "prev_event_id": "aud_seed_dec_seed_ot_week_place",
+      "prose": "Alex Rivera approved overtime for sam (Peak coverage \u2014 seed fixture).",
+      "subject": {
+        "date": "2026-09-14",
+        "employee": "sam",
+        "hours": 2
+      },
+      "timestamp": "2026-09-20T12:02:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_seed_dec_seed_ot_week_issued",
+      "evidence": {
+        "history_prior_week_starts": [],
+        "parameter_shelf_id": "shelf_seed_dec_seed_ot_week",
+        "schedule_hash": "sha256:seed_dec_seed_ot_week"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_seed_dec_seed_ot_week_ot",
+      "prose": "agent issued dec_seed_ot_week.",
+      "subject": {
+        "decision_id": "dec_seed_ot_week"
+      },
+      "timestamp": "2026-09-20T12:03:00Z"
+    }
+  ]
+}
