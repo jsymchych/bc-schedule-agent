@@ -50,6 +50,18 @@ def _blocking_time_off(
     return None
 
 
+def _pending_time_off(
+    requests: list[TimeOffRequest],
+    *,
+    employee: str,
+    on: date,
+) -> TimeOffRequest | None:
+    for req in requests:
+        if req.employee == employee and req.awaits(on):
+            return req
+    return None
+
+
 def _refuse(
     chain: AuditChain,
     result: ComposeResult,
@@ -197,8 +209,10 @@ def _propose_ot(
             "shift_id": proposal.shift_id,
         },
         evidence={
+            "proposal_id": proposal.proposal_id,
             "hours": proposal.hours,
             "multiplier": proposal.multiplier,
+            "rule_id": proposal.rule_id,
             "section": proposal.section,
             "status": proposal.status,
             **proposal.evidence,
@@ -467,6 +481,25 @@ def compose_week(
                 section="availability",
                 shift=shift,
                 detail="no covering availability row",
+            )
+            continue
+
+        waiting = _pending_time_off(
+            time_off, employee=shift.employee, on=shift.date
+        )
+        if waiting is not None:
+            _refuse(
+                chain,
+                result,
+                rule_id="timeoff-pending",
+                section="time_off",
+                shift=shift,
+                detail="pending time-off awaits human decision",
+                extra_subject={"pending_request_id": waiting.request_id},
+                extra_evidence={
+                    "request_id": waiting.request_id,
+                    "status": "PENDING",
+                },
             )
             continue
 

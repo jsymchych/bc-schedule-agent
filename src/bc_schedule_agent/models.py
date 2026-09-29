@@ -77,16 +77,24 @@ class AvailabilityWindow:
         return self.start <= shift_start and shift_end <= self.end
 
 
-@dataclass(frozen=True)
+@dataclass
 class TimeOffRequest:
+    """Time-off row. Status mutates only via human timeoff_decided."""
+
     request_id: str
     employee: str
     start: date
     end: date
     status: TimeOffStatus
 
+    def covers(self, on: date) -> bool:
+        return self.start <= on <= self.end
+
     def blocks(self, on: date) -> bool:
-        return self.status == "APPROVED" and self.start <= on <= self.end
+        return self.status == "APPROVED" and self.covers(on)
+
+    def awaits(self, on: date) -> bool:
+        return self.status == "PENDING" and self.covers(on)
 
 
 @dataclass(frozen=True)
@@ -167,17 +175,25 @@ class PlacedShift:
     meal_break_minutes: int = 0
 
 
-@dataclass(frozen=True)
+OtStatus = Literal["PENDING_APPROVAL", "APPROVED", "REFUSED"]
+
+
+@dataclass
 class OvertimeProposal:
+    """OT / rest premium line. Status mutates only via human ot_approved / ot_refused."""
+
     employee: str
     date: date
     hours: float
     multiplier: float
     rule_id: str
     section: str
-    status: Literal["PENDING_APPROVAL"] = "PENDING_APPROVAL"
+    status: OtStatus = "PENDING_APPROVAL"
     shift_id: str | None = None
     evidence: dict[str, Any] = field(default_factory=dict)
+    proposal_id: str = field(default_factory=lambda: f"ot_{uuid4().hex[:10]}")
+    decided_by: str | None = None
+    decided_at: str | None = None
 
 
 @dataclass
