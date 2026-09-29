@@ -4,18 +4,19 @@ Local demo of a governed agent that drafts a BC Employment Standards–compliant
 
 **Not** KitchenStack. **Not** Chambers. Synthetic fixtures only. Decision support, not legal advice.
 
-## Wave A (this slice)
+## Waves A–B (this slice)
 
 - Append-only audit event model and chain linker
 - Versioned ESA rule graph (KitchenStack constraint *shape* + s.37 averaging packet terms)
-- Unit tests: chain links, stable ruleset hash, empty-chain replay stub
+- Sheet ingest: availability, time-off, averaging packet, coverage demand (fixtures)
+- Composer: closed-world availability, hard refuses, standard (s.35/s.40) and averaging (s.37) OT proposals
 
-No ingest, no UI, no PDF in this wave.
+No UI, no PDF/XLSX, no human OT gate yet (Wave C).
 
 ## Layout
 
 ```
-src/bc_schedule_agent/   # audit + ruleset loaders
+src/bc_schedule_agent/   # audit, ruleset, ingest, packet, composer
 rulesets/                # versioned JSON rule graphs
 tests/                   # pytest
 ```
