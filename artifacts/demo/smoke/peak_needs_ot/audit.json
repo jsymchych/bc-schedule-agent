@@ -1,0 +1,503 @@
+{
+  "decision_id": "dec_demo_peak_ot_2026w40",
+  "events": [
+    {
+      "actor": "agent",
+      "event_id": "aud_f35027b43972",
+      "evidence": {
+        "input_hash": "sha256:e745f3f65d683e365da468641c4f76a35d2f051202fea1e9b663b163b7d8aed8",
+        "source": "bytes"
+      },
+      "kind": "ingest",
+      "prev_event_id": null,
+      "prose": "agent ingested availability (hash sha256:e745f3f65d683e365da468641c4f76a35d2f051202fea1e9b663b163b7d8aed8).",
+      "subject": {
+        "rows": 5,
+        "sheet": "availability"
+      },
+      "timestamp": "2026-09-29T20:14:58.332277Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_3e304263b6b5",
+      "evidence": {
+        "input_hash": "sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243",
+        "source": "bytes"
+      },
+      "kind": "ingest",
+      "prev_event_id": "aud_f35027b43972",
+      "prose": "agent ingested time_off (hash sha256:aa2b0428a90a66bdaf56bfdc8e171e729de6844a144ddf13d63c344048ea9243).",
+      "subject": {
+        "rows": 0,
+        "sheet": "time_off"
+      },
+      "timestamp": "2026-09-29T20:14:58.332286Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_bc6e5f74601f",
+      "evidence": {
+        "input_hash": "sha256:555b125d4938ab1da975a5975ea93a5a0d5d2a5e6773c96f5a00074dc2435c41",
+        "source": "bytes"
+      },
+      "kind": "ingest",
+      "prev_event_id": "aud_3e304263b6b5",
+      "prose": "agent ingested hours_of_operation (hash sha256:555b125d4938ab1da975a5975ea93a5a0d5d2a5e6773c96f5a00074dc2435c41).",
+      "subject": {
+        "rows": 5,
+        "sheet": "hours_of_operation"
+      },
+      "timestamp": "2026-09-29T20:14:58.332384Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_bbf0b13fc2ba",
+      "evidence": {
+        "input_hash": "sha256:131fb8297faa0ee6b94ff9e73b8aa5beae2e136c97beff474d71fea9e98343d5",
+        "source": "bytes"
+      },
+      "kind": "ingest",
+      "prev_event_id": "aud_bc6e5f74601f",
+      "prose": "agent ingested sales_projections (hash sha256:131fb8297faa0ee6b94ff9e73b8aa5beae2e136c97beff474d71fea9e98343d5).",
+      "subject": {
+        "rows": 5,
+        "sheet": "sales_projections"
+      },
+      "timestamp": "2026-09-29T20:14:58.332401Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_2e1210020fc2",
+      "evidence": {
+        "days": [
+          {
+            "band": "quiet",
+            "close": "18:30",
+            "date": "2026-09-28",
+            "headcount": 1,
+            "open": "08:00",
+            "sales": 700.0
+          },
+          {
+            "band": "quiet",
+            "close": "17:30",
+            "date": "2026-09-29",
+            "headcount": 1,
+            "open": "09:00",
+            "sales": 700.0
+          },
+          {
+            "band": "quiet",
+            "close": "17:30",
+            "date": "2026-09-30",
+            "headcount": 1,
+            "open": "09:00",
+            "sales": 700.0
+          },
+          {
+            "band": "quiet",
+            "close": "17:30",
+            "date": "2026-10-01",
+            "headcount": 1,
+            "open": "09:00",
+            "sales": 700.0
+          },
+          {
+            "band": "quiet",
+            "close": "17:30",
+            "date": "2026-10-02",
+            "headcount": 1,
+            "open": "09:00",
+            "sales": 700.0
+          }
+        ],
+        "ops_hash": "sha256:555b125d4938ab1da975a5975ea93a5a0d5d2a5e6773c96f5a00074dc2435c41",
+        "ruleset_hash": "sha256:fa011e12eec36e826b65f4357fd3c56bf55bc334cf9d600f67d659bc68bf6c3f",
+        "ruleset_version": "esa_bc_v1.1",
+        "sales_hash": "sha256:131fb8297faa0ee6b94ff9e73b8aa5beae2e136c97beff474d71fea9e98343d5",
+        "shift_ids": [
+          "sh_2026-09-28_slot_1",
+          "sh_2026-09-29_slot_1",
+          "sh_2026-09-30_slot_1",
+          "sh_2026-10-01_slot_1",
+          "sh_2026-10-02_slot_1"
+        ],
+        "staffing_hash": "sha256:6955597e627d332d4828fce846fd978a60622bf88b0efec5c06e1bac749414c8",
+        "staffing_version": "staffing_demo_v1",
+        "week_start": "2026-09-27"
+      },
+      "kind": "plan",
+      "prev_event_id": "aud_bbf0b13fc2ba",
+      "prose": "agent recorded plan.",
+      "subject": {
+        "demand_id": "dem_plan_2026-09-27",
+        "shifts": 5,
+        "source": "planner:staffing_demo_v1"
+      },
+      "timestamp": "2026-09-29T20:14:58.333010Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_72b9dc19f520",
+      "evidence": {
+        "detail": "alternate sam placed instead of slot_1 to keep straight time",
+        "pass": "A"
+      },
+      "kind": "repair",
+      "prev_event_id": "aud_2e1210020fc2",
+      "prose": "agent repaired placement for sh_2026-09-29_slot_1: alternate sam placed instead of slot_1 to keep straight time.",
+      "subject": {
+        "date": "2026-09-29",
+        "from_employee": "slot_1",
+        "shift_id": "sh_2026-09-29_slot_1",
+        "to_employee": "sam"
+      },
+      "timestamp": "2026-09-29T20:14:58.333501Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_686d10e95d4b",
+      "evidence": {
+        "end": "17:30",
+        "regime": "standard",
+        "start": "09:00",
+        "worked_hours": 8.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_72b9dc19f520",
+      "prose": "agent placed sam on 2026-09-29 09:00-17:30 (8.0h, regime standard).",
+      "subject": {
+        "date": "2026-09-29",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-29_slot_1"
+      },
+      "timestamp": "2026-09-29T20:14:58.333509Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_0814394ec142",
+      "evidence": {
+        "detail": "alternate sam placed instead of slot_1 to keep straight time",
+        "pass": "A"
+      },
+      "kind": "repair",
+      "prev_event_id": "aud_686d10e95d4b",
+      "prose": "agent repaired placement for sh_2026-09-30_slot_1: alternate sam placed instead of slot_1 to keep straight time.",
+      "subject": {
+        "date": "2026-09-30",
+        "from_employee": "slot_1",
+        "shift_id": "sh_2026-09-30_slot_1",
+        "to_employee": "sam"
+      },
+      "timestamp": "2026-09-29T20:14:58.333520Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_aaa898731242",
+      "evidence": {
+        "end": "17:30",
+        "regime": "standard",
+        "start": "09:00",
+        "worked_hours": 8.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_0814394ec142",
+      "prose": "agent placed sam on 2026-09-30 09:00-17:30 (8.0h, regime standard).",
+      "subject": {
+        "date": "2026-09-30",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-30_slot_1"
+      },
+      "timestamp": "2026-09-29T20:14:58.333527Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_0da891626952",
+      "evidence": {
+        "detail": "alternate sam placed instead of slot_1 to keep straight time",
+        "pass": "A"
+      },
+      "kind": "repair",
+      "prev_event_id": "aud_aaa898731242",
+      "prose": "agent repaired placement for sh_2026-10-01_slot_1: alternate sam placed instead of slot_1 to keep straight time.",
+      "subject": {
+        "date": "2026-10-01",
+        "from_employee": "slot_1",
+        "shift_id": "sh_2026-10-01_slot_1",
+        "to_employee": "sam"
+      },
+      "timestamp": "2026-09-29T20:14:58.333541Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_13ad344ca8b3",
+      "evidence": {
+        "end": "17:30",
+        "regime": "standard",
+        "start": "09:00",
+        "worked_hours": 8.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_0da891626952",
+      "prose": "agent placed sam on 2026-10-01 09:00-17:30 (8.0h, regime standard).",
+      "subject": {
+        "date": "2026-10-01",
+        "employee": "sam",
+        "shift_id": "sh_2026-10-01_slot_1"
+      },
+      "timestamp": "2026-09-29T20:14:58.333547Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_793c39d551f6",
+      "evidence": {
+        "detail": "alternate sam placed instead of slot_1 to keep straight time",
+        "pass": "A"
+      },
+      "kind": "repair",
+      "prev_event_id": "aud_13ad344ca8b3",
+      "prose": "agent repaired placement for sh_2026-10-02_slot_1: alternate sam placed instead of slot_1 to keep straight time.",
+      "subject": {
+        "date": "2026-10-02",
+        "from_employee": "slot_1",
+        "shift_id": "sh_2026-10-02_slot_1",
+        "to_employee": "sam"
+      },
+      "timestamp": "2026-09-29T20:14:58.333558Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_17fbd75addd3",
+      "evidence": {
+        "end": "17:30",
+        "regime": "standard",
+        "start": "09:00",
+        "worked_hours": 8.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_793c39d551f6",
+      "prose": "agent placed sam on 2026-10-02 09:00-17:30 (8.0h, regime standard).",
+      "subject": {
+        "date": "2026-10-02",
+        "employee": "sam",
+        "shift_id": "sh_2026-10-02_slot_1"
+      },
+      "timestamp": "2026-09-29T20:14:58.333564Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_0f4a381abf00",
+      "evidence": {
+        "pass": "B",
+        "reason_unavoidable": "residual coverage for sh_2026-09-28_slot_1 on 2026-09-28 requires sam; no straight-time alternate or split remained"
+      },
+      "kind": "ot_unavoidable",
+      "prev_event_id": "aud_17fbd75addd3",
+      "prose": "agent marked overtime unavoidable for sh_2026-09-28_slot_1 (residual coverage for sh_2026-09-28_slot_1 on 2026-09-28 requires sam; no straight-time alternate or split remained).",
+      "subject": {
+        "date": "2026-09-28",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-28_slot_1"
+      },
+      "timestamp": "2026-09-29T20:14:58.333577Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_aab90cc4302a",
+      "evidence": {
+        "end": "18:30",
+        "regime": "standard",
+        "start": "08:00",
+        "worked_hours": 10.0
+      },
+      "kind": "place",
+      "prev_event_id": "aud_0f4a381abf00",
+      "prose": "agent placed sam on 2026-09-28 08:00-18:30 (10.0h, regime standard).",
+      "subject": {
+        "date": "2026-09-28",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-28_slot_1"
+      },
+      "timestamp": "2026-09-29T20:14:58.333583Z"
+    },
+    {
+      "actor": "rule:bc-esa-s35-daily-overtime-threshold",
+      "event_id": "aud_87fab766a7e7",
+      "evidence": {
+        "daily_hours": 8.0,
+        "regime": "standard",
+        "section": "35(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_aab90cc4302a",
+      "prose": "rule:bc-esa-s35-daily-overtime-threshold passed sam on 2026-09-29: ok.",
+      "subject": {
+        "date": "2026-09-29",
+        "employee": "sam"
+      },
+      "timestamp": "2026-09-29T20:14:58.333592Z"
+    },
+    {
+      "actor": "rule:bc-esa-s35-daily-overtime-threshold",
+      "event_id": "aud_1e2475373254",
+      "evidence": {
+        "daily_hours": 8.0,
+        "regime": "standard",
+        "section": "35(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_87fab766a7e7",
+      "prose": "rule:bc-esa-s35-daily-overtime-threshold passed sam on 2026-09-30: ok.",
+      "subject": {
+        "date": "2026-09-30",
+        "employee": "sam"
+      },
+      "timestamp": "2026-09-29T20:14:58.333596Z"
+    },
+    {
+      "actor": "rule:bc-esa-s35-daily-overtime-threshold",
+      "event_id": "aud_73c726a810de",
+      "evidence": {
+        "daily_hours": 8.0,
+        "regime": "standard",
+        "section": "35(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_1e2475373254",
+      "prose": "rule:bc-esa-s35-daily-overtime-threshold passed sam on 2026-10-01: ok.",
+      "subject": {
+        "date": "2026-10-01",
+        "employee": "sam"
+      },
+      "timestamp": "2026-09-29T20:14:58.333601Z"
+    },
+    {
+      "actor": "rule:bc-esa-s35-daily-overtime-threshold",
+      "event_id": "aud_f9c6114a5b28",
+      "evidence": {
+        "daily_hours": 8.0,
+        "regime": "standard",
+        "section": "35(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_73c726a810de",
+      "prose": "rule:bc-esa-s35-daily-overtime-threshold passed sam on 2026-10-02: ok.",
+      "subject": {
+        "date": "2026-10-02",
+        "employee": "sam"
+      },
+      "timestamp": "2026-09-29T20:14:58.333605Z"
+    },
+    {
+      "actor": "rule:bc-esa-s40-overtime-rates",
+      "event_id": "aud_48ab9c22dd5a",
+      "evidence": {
+        "band": "8_to_12",
+        "hours": 2.0,
+        "multiplier": 1.5,
+        "proposal_id": "ot_f6b4ed7df8",
+        "regime": "standard",
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "PENDING_APPROVAL"
+      },
+      "kind": "ot_proposed",
+      "prev_event_id": "aud_f9c6114a5b28",
+      "prose": "rule:bc-esa-s40-overtime-rates proposed overtime for sam on 2026-09-28: 2.0h at 1.5x (s.35 / 40).",
+      "subject": {
+        "date": "2026-09-28",
+        "employee": "sam",
+        "shift_id": "sh_2026-09-28_slot_1"
+      },
+      "timestamp": "2026-09-29T20:14:58.333616Z"
+    },
+    {
+      "actor": "rule:bc-esa-s36-weekly-rest",
+      "event_id": "aud_f3ecf94f2c05",
+      "evidence": {
+        "longest_rest_hours": 32.0,
+        "regime": "standard",
+        "section": "36(1)"
+      },
+      "kind": "rule_pass",
+      "prev_event_id": "aud_48ab9c22dd5a",
+      "prose": "rule:bc-esa-s36-weekly-rest passed sam on None: ok.",
+      "subject": {
+        "employee": "sam",
+        "week_start": "2026-09-27"
+      },
+      "timestamp": "2026-09-29T20:14:58.333630Z"
+    },
+    {
+      "actor": "human:Alex Rivera",
+      "event_id": "aud_e041a9508f69",
+      "evidence": {
+        "hours": 2.0,
+        "human_name": "Alex Rivera",
+        "multiplier": 1.5,
+        "reason": "Peak Monday: only Sam covers the long open",
+        "rule_id": "bc-esa-s40-overtime-rates",
+        "section": "35 / 40",
+        "status": "APPROVED",
+        "timestamp": "2026-09-29T19:00:00Z"
+      },
+      "kind": "ot_approved",
+      "prev_event_id": "aud_f3ecf94f2c05",
+      "prose": "human:Alex Rivera approved overtime ot_f6b4ed7df8 at 2026-09-29T19:00:00Z: Peak Monday: only Sam covers the long open.",
+      "subject": {
+        "date": "2026-09-28",
+        "employee": "sam",
+        "proposal_id": "ot_f6b4ed7df8",
+        "shift_id": "sh_2026-09-28_slot_1"
+      },
+      "timestamp": "2026-09-29T19:00:00Z"
+    },
+    {
+      "actor": "agent",
+      "event_id": "aud_312592d79fa4",
+      "evidence": {
+        "gate_snapshot": {
+          "ot_approvals": [
+            {
+              "date": "2026-09-28",
+              "employee": "sam",
+              "hours": 2.0,
+              "human_name": "Alex Rivera",
+              "multiplier": 1.5,
+              "proposal_id": "ot_f6b4ed7df8",
+              "reason": "Peak Monday: only Sam covers the long open",
+              "rule_id": "bc-esa-s40-overtime-rates",
+              "section": "35 / 40",
+              "shift_id": "sh_2026-09-28_slot_1",
+              "timestamp": "2026-09-29T19:00:00Z"
+            }
+          ],
+          "timeoff_decisions": []
+        },
+        "gate_snapshot_hash": "sha256:e37f4815034b1e01afd096b5ace1a07f2fd4bc84321dd53bccebd6ff00ff6897",
+        "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "ot_approved_count": 1,
+        "placed_count": 5,
+        "ruleset_hash": "sha256:fa011e12eec36e826b65f4357fd3c56bf55bc334cf9d600f67d659bc68bf6c3f",
+        "ruleset_version": "esa_bc_v1.1",
+        "schedule_hash": "sha256:f0c562e482ec3055d04a9e9701537362921e393dec7a5f0dff500ed8348660d2",
+        "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+        "timestamp": "2026-09-29T19:05:00Z"
+      },
+      "kind": "issued",
+      "prev_event_id": "aud_e041a9508f69",
+      "prose": "agent issued decision dec_demo_peak_ot_2026w40 schedule_hash=sha256:f0c562e482ec3055d04a9e9701537362921e393dec7a5f0dff500ed8348660d2.",
+      "subject": {
+        "decision_id": "dec_demo_peak_ot_2026w40"
+      },
+      "timestamp": "2026-09-29T19:05:00Z"
+    }
+  ],
+  "hours_and_multipliers_only": true,
+  "legal_posture": "Decision support under the Employment Standards Act, not legal advice. https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+  "ruleset_hash": "sha256:fa011e12eec36e826b65f4357fd3c56bf55bc334cf9d600f67d659bc68bf6c3f",
+  "ruleset_version": "esa_bc_v1.1",
+  "schedule_hash": "sha256:f0c562e482ec3055d04a9e9701537362921e393dec7a5f0dff500ed8348660d2",
+  "statute_url": "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01",
+  "week_start": "2026-09-27"
+}
