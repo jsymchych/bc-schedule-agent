@@ -390,15 +390,19 @@ class DemoSession:
             ruleset_hash=ruleset.content_hash,
             time_off_raw=self.time_off_raw,
             averaging_packets=tuple(self.packet_payloads),
+            gate_snapshot=bundle.issue.gate_snapshot,
         )
         replay_result = replay(
-            inputs, expected_schedule_hash=bundle.issue.schedule_hash
+            inputs,
+            expected_schedule_hash=bundle.issue.schedule_hash,
+            expected_gate_snapshot=bundle.issue.gate_snapshot,
         )
-        # Replay is hash authority only. Pending OT comes from the issued
-        # session after human gates — rebuild would re-propose PENDING lines.
+        # Dual-plane: placement hash + gate snapshot. Pending OT count comes
+        # from the issued session — rebuild would re-propose PENDING lines.
         issued_pending = len(pending_ot_lines(self.result.ot_proposals))
         self.replay_sentence = (
             f"Replay matched schedule_hash={replay_result.schedule_hash} "
+            f"and gate_snapshot_hash={replay_result.gate_snapshot_hash} "
             f"for decision {bundle.issue.decision_id} "
             f"({replay_result.placed_count} placed, "
             f"{replay_result.refuse_count} refuses, "

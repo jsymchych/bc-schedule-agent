@@ -16,8 +16,11 @@ from bc_schedule_agent.exhibit import (
 )
 from bc_schedule_agent.export import (
     ExportBlocked,
+    build_gate_snapshot,
     build_pdf_exhibit,
     build_xlsx_exhibit,
+    empty_gate_snapshot,
+    gate_snapshot_hash,
     issue_schedule,
     pending_ot_lines,
 )
@@ -38,7 +41,13 @@ from bc_schedule_agent.ingest import (
 )
 from bc_schedule_agent.packet import accept_or_reject_packet, check_averaging_packet
 from bc_schedule_agent.planner import plan_coverage
-from bc_schedule_agent.replay import ReplayError, ReplayInputs, ReplayMismatch, replay
+from bc_schedule_agent.replay import (
+    ReplayError,
+    ReplayInputs,
+    ReplayMismatch,
+    issued_gate_snapshot,
+    replay,
+)
 from bc_schedule_agent.ruleset import Ruleset, load_ruleset, ruleset_hash
 from bc_schedule_agent.staffing import StaffingCurve, load_staffing
 
@@ -61,12 +70,16 @@ __all__ = [
     "accept_or_reject_packet",
     "agent_approve_ot",
     "approve_ot",
+    "build_gate_snapshot",
     "build_pdf_exhibit",
     "build_xlsx_exhibit",
     "check_averaging_packet",
     "compose_week",
     "decide_time_off",
+    "empty_gate_snapshot",
+    "gate_snapshot_hash",
     "issue_schedule",
+    "issued_gate_snapshot",
     "load_ruleset",
     "load_staffing",
     "parse_availability_sheet",

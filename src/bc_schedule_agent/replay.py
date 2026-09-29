@@ -1,15 +1,19 @@
-"""Replay gate: same inputs + demand + ruleset hash → same issued schedule hash."""
+"""Dual-plane replay: placement schedule hash + gate snapshot (OT / time-off)."""
 
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from bc_schedule_agent.audit import AuditChain
 from bc_schedule_agent.composer import compose_week
-from bc_schedule_agent.export import schedule_hash
+from bc_schedule_agent.export import (
+    empty_gate_snapshot,
+    gate_snapshot_hash,
+    schedule_hash,
+)
 from bc_schedule_agent.ingest import (
     content_hash,
     parse_availability_sheet,
@@ -20,18 +24,24 @@ from bc_schedule_agent.ingest import (
 from bc_schedule_agent.models import ComposeResult
 from bc_schedule_agent.ruleset import load_ruleset
 
+ReplayPlane = Literal["placement", "gate"]
+
 
 class ReplayError(ValueError):
     """Replay inputs are incomplete or inconsistent."""
 
 
 class ReplayMismatch(ReplayError):
-    """Rebuilt schedule hash does not match the issued hash."""
+    """Rebuilt evidence does not match the issued plane."""
+
+    def __init__(self, message: str, *, plane: ReplayPlane) -> None:
+        super().__init__(message)
+        self.plane = plane
 
 
 @dataclass(frozen=True)
 class ReplayInputs:
-    """Inputs required to rebuild an issued week."""
+    """Inputs required to rebuild an issued week (placement + optional gate plane)."""
 
     availability_raw: bytes
     demand: dict[str, Any]
@@ -41,6 +51,7 @@ class ReplayInputs:
     availability_hash: str | None = None
     demand_hash: str | None = None
     time_off_hash: str | None = None
+    gate_snapshot: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -48,6 +59,8 @@ class ReplayResult:
     matched: bool
     schedule_hash: str
     expected_schedule_hash: str
+    gate_snapshot_hash: str
+    expected_gate_snapshot_hash: str
     placed_count: int
     refuse_count: int
     pending_ot_count: int
@@ -61,6 +74,26 @@ def _verify_optional_hash(raw: bytes, expected: str | None, label: str) -> None:
     actual = content_hash(raw)
     if actual != expected:
         raise ReplayError(f"{label} hash mismatch: expected {expected}, got {actual}")
+
+
+def _normalize_gate_snapshot(snapshot: dict[str, Any] | None) -> dict[str, Any]:
+    if snapshot is None:
+        return empty_gate_snapshot()
+    ot = list(snapshot.get("ot_approvals") or [])
+    toff = list(snapshot.get("timeoff_decisions") or [])
+    ot.sort(
+        key=lambda row: (
+            str(row.get("proposal_id") or ""),
+            str(row.get("timestamp") or ""),
+        )
+    )
+    toff.sort(
+        key=lambda row: (
+            str(row.get("request_id") or ""),
+            str(row.get("timestamp") or ""),
+        )
+    )
+    return {"ot_approvals": ot, "timeoff_decisions": toff}
 
 
 def rebuild_week(inputs: ReplayInputs) -> tuple[ComposeResult, AuditChain]:
@@ -108,8 +141,9 @@ def replay(
     inputs: ReplayInputs,
     *,
     expected_schedule_hash: str,
+    expected_gate_snapshot: dict[str, Any] | None = None,
 ) -> ReplayResult:
-    """Rebuild and require the schedule hash to match `issued`."""
+    """Rebuild and dual-check placement hash + gate snapshot against `issued`."""
     if not expected_schedule_hash:
         raise ReplayError("expected_schedule_hash is required")
 
@@ -117,16 +151,31 @@ def replay(
     rebuilt = schedule_hash(result.placed)
     pending = sum(1 for p in result.ot_proposals if p.status == "PENDING_APPROVAL")
     refuse_count = sum(1 for e in chain.events if e.kind == "rule_refuse")
-    matched = rebuilt == expected_schedule_hash
-    if not matched:
+
+    if rebuilt != expected_schedule_hash:
         raise ReplayMismatch(
-            f"schedule hash mismatch: issued={expected_schedule_hash}, "
-            f"replay={rebuilt}"
+            f"placement plane mismatch: issued={expected_schedule_hash}, "
+            f"replay={rebuilt}",
+            plane="placement",
         )
+
+    actual_gate = _normalize_gate_snapshot(inputs.gate_snapshot)
+    expected_gate = _normalize_gate_snapshot(expected_gate_snapshot)
+    actual_gate_hash = gate_snapshot_hash(actual_gate)
+    expected_gate_hash = gate_snapshot_hash(expected_gate)
+    if actual_gate_hash != expected_gate_hash:
+        raise ReplayMismatch(
+            f"gate plane mismatch: issued={expected_gate_hash}, "
+            f"replay={actual_gate_hash}",
+            plane="gate",
+        )
+
     return ReplayResult(
         matched=True,
         schedule_hash=rebuilt,
         expected_schedule_hash=expected_schedule_hash,
+        gate_snapshot_hash=actual_gate_hash,
+        expected_gate_snapshot_hash=expected_gate_hash,
         placed_count=len(result.placed),
         refuse_count=refuse_count,
         pending_ot_count=pending,
@@ -144,6 +193,17 @@ def issued_schedule_hash(chain: AuditChain) -> str:
     if not isinstance(value, str) or not value:
         raise ReplayError("issued event missing schedule_hash")
     return value
+
+
+def issued_gate_snapshot(chain: AuditChain) -> dict[str, Any]:
+    """Read gate_snapshot from the `issued` event."""
+    issued = next((e for e in chain.events if e.kind == "issued"), None)
+    if issued is None:
+        raise ReplayError("no issued event on chain")
+    value = issued.evidence.get("gate_snapshot")
+    if not isinstance(value, dict):
+        raise ReplayError("issued event missing gate_snapshot")
+    return _normalize_gate_snapshot(value)
 
 
 def week_start_from_demand(demand: dict[str, Any]) -> date:

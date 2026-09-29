@@ -170,6 +170,10 @@ def test_replay_same_inputs_match_issued_hash() -> None:
         ruleset_hash=ruleset.content_hash,
     )
     assert issued.schedule_hash == schedule_hash(result.placed)
+    assert issued.gate_snapshot == {"ot_approvals": [], "timeoff_decisions": []}
+    event = next(e for e in chain.events if e.kind == "issued")
+    assert event.evidence["gate_snapshot"] == issued.gate_snapshot
+    assert event.evidence["gate_snapshot_hash"].startswith("sha256:")
 
     replay_result = replay(
         ReplayInputs(
@@ -182,11 +186,14 @@ def test_replay_same_inputs_match_issued_hash() -> None:
                     demand_payload, sort_keys=True, separators=(",", ":")
                 ).encode("utf-8")
             ),
+            gate_snapshot=issued.gate_snapshot,
         ),
         expected_schedule_hash=issued.schedule_hash,
+        expected_gate_snapshot=issued.gate_snapshot,
     )
     assert replay_result.matched is True
     assert replay_result.schedule_hash == issued.schedule_hash
+    assert replay_result.gate_snapshot_hash == event.evidence["gate_snapshot_hash"]
     assert replay_result.refuse_count == 0
     assert replay_result.pending_ot_count == 0
     assert replay_result.placed_count == 5
@@ -206,15 +213,18 @@ def test_replay_mismatch_fails() -> None:
     tampered = json.loads(json.dumps(demand_payload))
     tampered["shifts"][0]["end"] = "18:00"  # changes worked hours → hash
 
-    with pytest.raises(ReplayMismatch, match="schedule hash mismatch"):
+    with pytest.raises(ReplayMismatch, match="placement plane mismatch") as exc:
         replay(
             ReplayInputs(
                 availability_raw=avail_raw,
                 demand=tampered,
                 ruleset_hash=ruleset.content_hash,
+                gate_snapshot=issued.gate_snapshot,
             ),
             expected_schedule_hash=issued.schedule_hash,
+            expected_gate_snapshot=issued.gate_snapshot,
         )
+    assert exc.value.plane == "placement"
 
 
 def test_issued_event_carries_schedule_hash() -> None:

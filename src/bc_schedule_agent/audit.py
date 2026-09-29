@@ -126,21 +126,3 @@ class AuditChain:
                     f"expected prev={prev!r}, got {event.prev_event_id!r}"
                 )
             prev = event.event_id
-
-    def replay_stub(self) -> dict[str, Any]:
-        """Empty-chain / early-wave replay stub.
-
-        Later waves rebuild the schedule from input hashes + demand + ruleset
-        hash and match the `issued` schedule hash. Wave A only asserts chain
-        integrity and returns a stub payload.
-        """
-        self.verify_links()
-        issued = next((e for e in self._events if e.kind == "issued"), None)
-        return {
-            "events": len(self._events),
-            "tip_id": self.tip_id,
-            "issued_schedule_hash": (
-                None if issued is None else issued.evidence.get("schedule_hash")
-            ),
-            "replay_ready": issued is not None,
-        }
