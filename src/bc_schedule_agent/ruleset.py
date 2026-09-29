@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_RULESET_NAME = "esa_bc_v1.json"
+ALLOWED_STATUSES = frozenset({"enforced", "appendix"})
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,16 @@ class Ruleset:
             if rule.get("id") == rule_id:
                 return rule
         return None
+
+    def enforced_ids(self) -> tuple[str, ...]:
+        return tuple(
+            str(r["id"]) for r in self.rules if r.get("status") == "enforced"
+        )
+
+    def appendix_ids(self) -> tuple[str, ...]:
+        return tuple(
+            str(r["id"]) for r in self.rules if r.get("status") == "appendix"
+        )
 
 
 def ruleset_hash(payload: dict[str, Any]) -> str:
@@ -62,6 +73,11 @@ def load_ruleset(path: Path | None = None) -> Ruleset:
     for rule in rules:
         if not isinstance(rule, dict) or "id" not in rule or "constraint" not in rule:
             raise ValueError("each rule needs id and constraint")
+        status = rule.get("status")
+        if status not in ALLOWED_STATUSES:
+            raise ValueError(
+                f"rule {rule.get('id')!r} needs status enforced|appendix, got {status!r}"
+            )
     content_hash = ruleset_hash(raw)
     return Ruleset(
         version=version,

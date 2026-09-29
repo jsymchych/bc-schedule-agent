@@ -8,7 +8,7 @@ from bc_schedule_agent.ruleset import load_ruleset, ruleset_hash
 def test_ruleset_hash_stable() -> None:
     first = load_ruleset()
     second = load_ruleset()
-    assert first.version == "esa_bc_v1"
+    assert first.version == "esa_bc_v1.1"
     assert first.content_hash == second.content_hash
     assert first.content_hash.startswith("sha256:")
     # Re-hashing the on-disk payload must match the loader's stored hash.

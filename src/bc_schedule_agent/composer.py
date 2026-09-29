@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date, time
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from bc_schedule_agent.audit import AuditChain
@@ -18,8 +18,18 @@ from bc_schedule_agent.models import (
     Regime,
     TimeOffRequest,
     combine_dt,
+    sunday_of,
 )
 from bc_schedule_agent.packet import accept_or_reject_packet
+
+
+def hours_between_times(start: time, end: time) -> float:
+    """Hours from start to end on the same calendar day."""
+    start_m = start.hour * 60 + start.minute
+    end_m = end.hour * 60 + end.minute
+    if end_m <= start_m:
+        raise ValueError("end must be after start on the same day")
+    return (end_m - start_m) / 60.0
 
 
 def _covering_availability(
@@ -106,7 +116,7 @@ def _check_hard_constraints(
     worked = shift.worked_hours
     span = shift.span_hours
 
-    # s.34 — reporting shift under 2 hours
+    # s.34(1) — reporting shift under 2 hours
     if worked < 2.0 - 1e-9:
         _refuse(
             chain,
@@ -115,6 +125,44 @@ def _check_hard_constraints(
             section="34(1)",
             shift=shift,
             detail=f"scheduled reporting shift under 2 hours ({worked:.2f}h)",
+        )
+        return False
+
+    # s.34(2) — when day is scheduled over 8 hours, reporting shift must be ≥4h
+    same_day_for_34 = [
+        p
+        for p in already_placed
+        if p.employee == shift.employee and p.date == shift.date
+    ]
+    day_scheduled = sum(
+        hours_between_times(p.start, p.end) for p in same_day_for_34
+    ) + span
+    if day_scheduled > 8.0 + 1e-9 and worked < 4.0 - 1e-9:
+        _refuse(
+            chain,
+            result,
+            rule_id="bc-esa-s34-min-daily-hours-long",
+            section="34(2)",
+            shift=shift,
+            detail=(
+                f"day scheduled over 8 hours ({day_scheduled:.2f}h) but "
+                f"reporting shift under 4 hours ({worked:.2f}h)"
+            ),
+            extra_evidence={"day_scheduled_hours": day_scheduled},
+        )
+        return False
+
+    # s.39 — hard refuse excessive daily hours (>16)
+    day_worked = sum(p.worked_hours for p in same_day_for_34) + worked
+    if day_worked > 16.0 + 1e-9:
+        _refuse(
+            chain,
+            result,
+            rule_id="bc-esa-s39-no-excessive-hours",
+            section="39",
+            shift=shift,
+            detail=f"excessive daily hours ({day_worked:.2f}h > hard limit 16)",
+            extra_evidence={"daily_hours": day_worked, "hard_limit": 16},
         )
         return False
 
@@ -134,14 +182,9 @@ def _check_hard_constraints(
         return False
 
     # s.33 — split shift spanning more than 12 hours (same employee, same day)
-    same_day = [
-        p
-        for p in already_placed
-        if p.employee == shift.employee and p.date == shift.date
-    ]
-    if same_day:
-        day_starts = [p.start for p in same_day] + [shift.start]
-        day_ends = [p.end for p in same_day] + [shift.end]
+    if same_day_for_34:
+        day_starts = [p.start for p in same_day_for_34] + [shift.start]
+        day_ends = [p.end for p in same_day_for_34] + [shift.end]
         earliest = min(day_starts)
         latest = max(day_ends)
         span_hours = (
@@ -437,6 +480,174 @@ def _standard_weekly_ot(
     )
 
 
+def _longest_weekly_rest_hours(
+    shifts: list[PlacedShift],
+    *,
+    week_start: date,
+) -> float:
+    """Longest consecutive free hours inside Sunday–Saturday week boundary."""
+    start = sunday_of(week_start)
+    week_begin = datetime(start.year, start.month, start.day, 0, 0)
+    week_end = week_begin + timedelta(days=7)
+    intervals: list[tuple[datetime, datetime]] = []
+    for shift in shifts:
+        intervals.append(
+            (combine_dt(shift.date, shift.start), combine_dt(shift.date, shift.end))
+        )
+    if not intervals:
+        return 7 * 24.0
+    intervals.sort(key=lambda pair: pair[0])
+    # Merge overlapping / abutting work blocks
+    merged: list[tuple[datetime, datetime]] = [intervals[0]]
+    for a, b in intervals[1:]:
+        last_a, last_b = merged[-1]
+        if a <= last_b:
+            merged[-1] = (last_a, max(last_b, b))
+        else:
+            merged.append((a, b))
+    gaps: list[float] = []
+    cursor = week_begin
+    for a, b in merged:
+        if a > cursor:
+            gaps.append((a - cursor).total_seconds() / 3600.0)
+        cursor = max(cursor, b)
+    if week_end > cursor:
+        gaps.append((week_end - cursor).total_seconds() / 3600.0)
+    return max(gaps) if gaps else 0.0
+
+
+def _weekly_rest_premium(
+    chain: AuditChain,
+    result: ComposeResult,
+    *,
+    employee: str,
+    shifts: list[PlacedShift],
+    week_start: date,
+    rule_id: str,
+    section: str,
+    regime: str,
+    packet_id: str | None = None,
+) -> None:
+    """s.36(1) / s.37(8)/(9): propose 1.5x when no 32h consecutive free interval."""
+    longest = _longest_weekly_rest_hours(shifts, week_start=week_start)
+    if longest >= 32.0 - 1e-9:
+        chain.append(
+            kind="rule_pass",
+            actor=f"rule:{rule_id}",
+            subject={"employee": employee, "week_start": sunday_of(week_start).isoformat()},
+            evidence={
+                "section": section,
+                "longest_rest_hours": longest,
+                "regime": regime,
+                **({"packet_id": packet_id} if packet_id else {}),
+            },
+        )
+        return
+    # Premium applies to hours that invade the missing rest — use shortfall as hours.
+    shortfall = 32.0 - longest
+    _propose_ot(
+        chain,
+        result,
+        OvertimeProposal(
+            employee=employee,
+            date=max((s.date for s in shifts), default=sunday_of(week_start)),
+            hours=shortfall,
+            multiplier=1.5,
+            rule_id=rule_id,
+            section=section,
+            evidence={
+                "regime": regime,
+                "longest_rest_hours": longest,
+                "required_rest_hours": 32,
+                "rest_shortfall_hours": shortfall,
+                **({"packet_id": packet_id} if packet_id else {}),
+            },
+        ),
+    )
+
+
+def _averaging_weekly_ot(
+    chain: AuditChain,
+    result: ComposeResult,
+    *,
+    employee: str,
+    hours_by_day: dict[date, float],
+    packet: AveragingPacket,
+) -> None:
+    """s.37(5): 1.5x on average weekly hours over 40, less daily OT already counted."""
+    if not hours_by_day:
+        return
+    total = sum(hours_by_day.values())
+    weeks = packet.period_weeks or 1
+    # Draft week only: treat this week's hours against 40 for a 1-week packet,
+    # or against 40 * weeks / weeks (=40 average) using this week's total as
+    # the period sample when multi-week schedule isn't fully placed.
+    average = total / 1.0 if weeks == 1 else total  # single draft week sample
+    # For multi-week, ESA averages over the full period; without full period
+    # placements, apply the weekly 40 threshold to this draft week's hours.
+    threshold = 40.0
+    if average <= threshold + 1e-9:
+        chain.append(
+            kind="rule_pass",
+            actor="rule:bc-esa-s37-ot-average-weekly",
+            subject={"employee": employee},
+            evidence={
+                "section": "37(5)",
+                "regime": "averaging",
+                "packet_id": packet.packet_id,
+                "weekly_hours": total,
+                "threshold": threshold,
+            },
+        )
+        return
+    # Remove daily OT hours already counted for this employee in this compose.
+    daily_ot = sum(
+        p.hours
+        for p in result.ot_proposals
+        if p.employee == employee
+        and p.rule_id
+        in (
+            "bc-esa-s37-ot-over-12-daily",
+            "bc-esa-s37-ot-beyond-agreed-day",
+        )
+    )
+    excess = max(0.0, total - threshold - daily_ot)
+    if excess <= 1e-9:
+        chain.append(
+            kind="rule_pass",
+            actor="rule:bc-esa-s37-ot-average-weekly",
+            subject={"employee": employee},
+            evidence={
+                "section": "37(5)",
+                "regime": "averaging",
+                "packet_id": packet.packet_id,
+                "weekly_hours": total,
+                "daily_ot_removed": daily_ot,
+                "straight_after_daily_ot": True,
+            },
+        )
+        return
+    _propose_ot(
+        chain,
+        result,
+        OvertimeProposal(
+            employee=employee,
+            date=max(hours_by_day),
+            hours=excess,
+            multiplier=1.5,
+            rule_id="bc-esa-s37-ot-average-weekly",
+            section="37(5)",
+            evidence={
+                "regime": "averaging",
+                "packet_id": packet.packet_id,
+                "weekly_hours": total,
+                "daily_ot_removed": daily_ot,
+                "period_weeks": packet.period_weeks,
+            },
+        ),
+    )
+
+
 def compose_week(
     demand: CoverageDemand,
     *,
@@ -604,6 +815,36 @@ def compose_week(
         if regime == "standard":
             _standard_weekly_ot(
                 chain, result, employee=employee, hours_by_day=hours_by_day
+            )
+            _weekly_rest_premium(
+                chain,
+                result,
+                employee=employee,
+                shifts=[s for day in days.values() for s in day],
+                week_start=demand.week_start,
+                rule_id="bc-esa-s36-weekly-rest",
+                section="36(1)",
+                regime="standard",
+            )
+        elif regime == "averaging" and packet is not None:
+            _averaging_weekly_ot(
+                chain,
+                result,
+                employee=employee,
+                hours_by_day=hours_by_day,
+                packet=packet,
+            )
+            rest_section = "37(8)" if (packet.period_weeks or 1) == 1 else "37(9)"
+            _weekly_rest_premium(
+                chain,
+                result,
+                employee=employee,
+                shifts=[s for day in days.values() for s in day],
+                week_start=demand.week_start,
+                rule_id="bc-esa-s37-rest-premium",
+                section=rest_section,
+                regime="averaging",
+                packet_id=packet.packet_id,
             )
 
     return result
