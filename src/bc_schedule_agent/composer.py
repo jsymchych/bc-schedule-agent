@@ -1054,6 +1054,62 @@ def _pass_b_place(
         unavoidable_shift_ids.add(shift.shift_id)
         return True
 
+    # Name the human time-off gate when a covering person is waiting / blocked.
+    for employee in roster:
+        if _covering_availability(
+            availability,
+            employee=employee,
+            on=shift.date,
+            start=shift.start,
+            end=shift.end,
+        ) is None:
+            continue
+        waiting = _pending_time_off(time_off, employee=employee, on=shift.date)
+        if waiting is not None:
+            named = CoverageShift(
+                shift_id=shift.shift_id,
+                employee=employee,
+                date=shift.date,
+                start=shift.start,
+                end=shift.end,
+                meal_break_minutes=shift.meal_break_minutes,
+            )
+            _refuse(
+                chain,
+                result,
+                rule_id="timeoff-pending",
+                section="time_off",
+                shift=named,
+                detail="pending time-off awaits human decision",
+                extra_subject={"pending_request_id": waiting.request_id},
+                extra_evidence={
+                    "request_id": waiting.request_id,
+                    "status": "PENDING",
+                },
+            )
+            return False
+        blocked = _blocking_time_off(time_off, employee=employee, on=shift.date)
+        if blocked is not None:
+            named = CoverageShift(
+                shift_id=shift.shift_id,
+                employee=employee,
+                date=shift.date,
+                start=shift.start,
+                end=shift.end,
+                meal_break_minutes=shift.meal_break_minutes,
+            )
+            _refuse(
+                chain,
+                result,
+                rule_id="timeoff-approved",
+                section="time_off",
+                shift=named,
+                detail="approved time-off blocks placement",
+                extra_subject={"blocking_request_id": blocked.request_id},
+                extra_evidence={"request_id": blocked.request_id},
+            )
+            return False
+
     # Nobody can take it even with OT — hard refuse like legacy availability miss.
     _refuse(
         chain,

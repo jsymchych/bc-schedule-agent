@@ -1,4 +1,4 @@
-"""Wave E: local demo session, fixture ask path, DEMO.md smoke."""
+"""Wave E product: four-input demo session, DEMO.md smoke."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from bc_schedule_agent.demo import (
     run_smoke_script,
 )
 from bc_schedule_agent.export import ExportBlocked
+from bc_schedule_agent.gates import GateError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,51 +22,92 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_demo_md_on_disk() -> None:
     assert (ROOT / "DEMO.md").is_file()
+    text = (ROOT / "DEMO.md").read_text(encoding="utf-8")
+    assert "fixture demand" not in text.lower()
+    assert "four inputs" in text.lower()
+    assert "who approved OT and why is on the chain" in text
 
 
-def test_resolve_ask_maps_to_fixtures() -> None:
-    assert resolve_ask_to_scenario("Draft a clean Mon–Fri week") == "clean_week"
-    assert resolve_ask_to_scenario("ten-hour overtime Monday") == "ot_gate"
+def test_resolve_ask_maps_to_scenarios() -> None:
+    assert (
+        resolve_ask_to_scenario("Take Mon–Fri hours and steady sales with Sam and Jordan")
+        == "busy_week_zero_ot"
+    )
+    assert resolve_ask_to_scenario("Peak Monday overtime") == "peak_needs_ot"
+    assert resolve_ask_to_scenario("Sam has pending time-off") == "time_off_gate"
     assert resolve_ask_to_scenario("apply the s.37 averaging packet") == "bad_s37_packet"
 
 
 def test_fixture_files_written() -> None:
     out = ensure_fixture_files(ROOT / "fixtures" / "demo")
     for sid in SCENARIO_IDS:
-        assert (out / sid / "availability.csv").is_file()
-        assert (out / sid / "demand.json").is_file()
-        assert (out / sid / "ask.txt").is_file()
+        base = out / sid
+        assert (base / "hours_of_operation.csv").is_file()
+        assert (base / "sales_projections.csv").is_file()
+        assert (base / "availability.csv").is_file()
+        assert (base / "time_off.csv").is_file()
+        assert (base / "ask.txt").is_file()
     assert (out / "bad_s37_packet" / "averaging_packet.json").is_file()
 
 
-def test_clean_week_downloads_and_replay(tmp_path: Path) -> None:
+def test_busy_week_zero_ot_downloads_and_replay(tmp_path: Path) -> None:
     session = DemoSession()
-    state = session.run_scenario("clean_week")
+    state = session.run_scenario("busy_week_zero_ot")
     assert state["download_enabled"] is True
     assert state["pending_ot_count"] == 0
-    assert len(state["placed"]) == 5
-    state = session.write_downloads(tmp_path / "clean")
+    assert state["inputs"]["hours_of_operation"]["rows"] >= 1
+    assert state["inputs"]["sales_projections"]["rows"] >= 1
+    assert state["inputs"]["availability"]["rows"] >= 1
+    assert len(state["placed"]) >= 2
+    state = session.write_downloads(tmp_path / "busy")
     assert state["replay_sentence"]
     assert Path(state["exhibit_paths"]["pdf"]).is_file()
     assert Path(state["exhibit_paths"]["xlsx"]).is_file()
     assert Path(state["exhibit_paths"]["audit_json"]).is_file()
 
 
-def test_ot_gate_blocks_then_human_approve(tmp_path: Path) -> None:
+def test_peak_needs_ot_blocks_then_human_approve_with_reason(tmp_path: Path) -> None:
     session = DemoSession()
-    state = session.run_scenario("ot_gate")
+    state = session.run_scenario("peak_needs_ot")
     assert state["pending_ot_count"] >= 1
     assert state["download_enabled"] is False
     with pytest.raises(ExportBlocked):
         session.write_downloads(tmp_path / "blocked")
-    state = session.approve_pending_ot(human_name="Alex Rivera")
+    with pytest.raises(GateError, match="non-empty reason"):
+        session.approve_pending_ot(human_name="Alex Rivera", reason="")
+    reason = "Peak Monday: only Sam covers the long open"
+    state = session.approve_pending_ot(human_name="Alex Rivera", reason=reason)
     assert state["pending_ot_count"] == 0
     assert state["download_enabled"] is True
     approved = [s for s in state["audit_drawer"] if "approved overtime" in s]
     assert approved
+    assert reason in approved[0]
     state = session.write_downloads(tmp_path / "approved")
     assert state["replay_sentence"]
     assert "0 pending OT" in state["replay_sentence"]
+    assert "Alex Rivera" in state["replay_sentence"]
+    assert reason in state["replay_sentence"]
+
+
+def test_peak_needs_ot_refuse() -> None:
+    session = DemoSession()
+    session.run_scenario("peak_needs_ot")
+    state = session.refuse_pending_ot(human_name="Alex Rivera")
+    assert state["pending_ot_count"] == 0
+    hits = [s for s in state["audit_drawer"] if "refused overtime" in s]
+    assert hits
+
+
+def test_time_off_gate_in_drawer() -> None:
+    session = DemoSession()
+    state = session.run_scenario("time_off_gate")
+    hits = [
+        s
+        for s in state["audit_drawer"]
+        if "pending time-off" in s.lower() or "awaits human" in s.lower()
+    ]
+    assert hits
+    assert state["download_enabled"] is False
 
 
 def test_bad_s37_packet_rejected_in_drawer() -> None:
@@ -86,11 +128,15 @@ def test_run_smoke_script_headless(tmp_path: Path) -> None:
     report = run_smoke_script(tmp_path / "smoke")
     assert report["ok"] is True
     assert [s["id"] for s in report["steps"]] == [
-        "clean_week",
-        "ot_gate",
+        "busy_week_zero_ot",
+        "peak_needs_ot",
+        "peak_needs_ot_refuse",
+        "time_off_gate",
         "bad_s37_packet",
     ]
+    assert report["closing"] == "Who approved OT and why is on the chain."
     assert (tmp_path / "smoke" / "smoke_report.json").is_file()
+    assert (tmp_path / "smoke" / "busy_week_zero_ot" / "audit.json").is_file()
 
 
 def test_demo_app_page_serves() -> None:
@@ -98,7 +144,11 @@ def test_demo_app_page_serves() -> None:
 
     assert "Week grid" in PAGE
     assert "Audit drawer" in PAGE
+    assert "Four inputs" in PAGE
     assert "Approve pending OT" in PAGE
+    assert "Refuse OT" in PAGE
+    assert "Named human" in PAGE
+    assert "audit.json" in PAGE
     assert "browserDownload" in PAGE
     assert "/api/exhibit/pdf" in PAGE
 
@@ -107,11 +157,9 @@ def test_exhibit_get_serves_after_download(tmp_path: Path) -> None:
     from bc_schedule_agent.demo import DemoSession
     from bc_schedule_agent.demo_app import DemoHandler, SESSION
 
-    # Point module SESSION at a fresh draft with exhibits on disk.
     session = DemoSession()
-    session.run_scenario("clean_week")
+    session.run_scenario("busy_week_zero_ot")
     session.write_downloads(tmp_path / "exhibits")
-    # Swap the live demo SESSION paths used by the handler.
     SESSION.exhibit_paths = dict(session.exhibit_paths)
     SESSION.result = session.result
     SESSION.chain = session.chain
@@ -135,3 +183,9 @@ def test_exhibit_get_serves_after_download(tmp_path: Path) -> None:
     assert fake.code == 200
     assert fake.headers["Content-Type"] == "application/pdf"
     assert fake.wfile.getvalue()[:4] == b"%PDF"
+
+    fake_audit = _Fake()
+    fake_audit.wfile = __import__("io").BytesIO()
+    DemoHandler._serve_exhibit(fake_audit, "audit.json")  # type: ignore[arg-type]
+    assert fake_audit.code == 200
+    assert "application/json" in fake_audit.headers["Content-Type"]

@@ -52,6 +52,7 @@ class ReplayInputs:
     demand_hash: str | None = None
     time_off_hash: str | None = None
     gate_snapshot: dict[str, Any] | None = None
+    prefer_zero_ot: bool = False
 
 
 @dataclass(frozen=True)
@@ -133,6 +134,7 @@ def rebuild_week(inputs: ReplayInputs) -> tuple[ComposeResult, AuditChain]:
         time_off=time_off,
         chain=chain,
         averaging_packets=packets or None,
+        prefer_zero_ot=inputs.prefer_zero_ot,
     )
     return result, chain
 

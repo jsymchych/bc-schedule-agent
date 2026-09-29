@@ -1,4 +1,4 @@
-"""Local demo session: fixture demand path, week grid, audit drawer, gated download."""
+"""Local demo session: four-input product story, week grid, audit drawer, gated download."""
 
 from __future__ import annotations
 
@@ -17,7 +17,6 @@ from bc_schedule_agent.gates import approve_ot, refuse_ot
 from bc_schedule_agent.ingest import (
     parse_availability_sheet,
     parse_averaging_packet,
-    parse_coverage_demand,
     parse_time_off_sheet,
 )
 from bc_schedule_agent.models import (
@@ -28,10 +27,18 @@ from bc_schedule_agent.models import (
     OvertimeProposal,
     TimeOffRequest,
 )
+from bc_schedule_agent.planner import plan_coverage
 from bc_schedule_agent.replay import ReplayInputs, replay
 from bc_schedule_agent.ruleset import load_ruleset
 
 WEEK_START = date(2026, 9, 27)  # Sunday (ESA s.1)
+
+SCENARIO_IDS = (
+    "busy_week_zero_ot",
+    "peak_needs_ot",
+    "time_off_gate",
+    "bad_s37_packet",
+)
 
 
 def fixtures_dir() -> Path:
@@ -48,44 +55,24 @@ def _timeoff_csv(*rows: str) -> bytes:
     return (header + "\n".join(rows) + "\n").encode("utf-8")
 
 
-def _clean_week_demand() -> dict[str, Any]:
-    shifts = []
-    for i in (1, 2, 3, 4, 5):
-        on = WEEK_START + timedelta(days=i)
-        shifts.append(
-            {
-                "shift_id": f"sh_{on.isoformat()}",
-                "employee": "sam",
-                "date": on.isoformat(),
-                "start": "09:00",
-                "end": "17:30",
-                "meal_break_minutes": 30,
-            }
-        )
-    return {
-        "week_start": WEEK_START.isoformat(),
-        "source": "fixture",
-        "demand_id": "dem_clean_week",
-        "shifts": shifts,
-    }
+def _ops_csv(*rows: str) -> bytes:
+    header = "weekday,open,close\n"
+    return (header + "\n".join(rows) + "\n").encode("utf-8")
 
 
-def _ot_week_demand() -> dict[str, Any]:
-    return {
-        "week_start": WEEK_START.isoformat(),
-        "source": "fixture",
-        "demand_id": "dem_ot_week",
-        "shifts": [
-            {
-                "shift_id": "sh_ot_mon",
-                "employee": "sam",
-                "date": "2026-09-28",
-                "start": "08:00",
-                "end": "18:30",
-                "meal_break_minutes": 30,
-            }
-        ],
-    }
+def _sales_csv(*rows: str) -> bytes:
+    header = "weekday,sales\n"
+    return (header + "\n".join(rows) + "\n").encode("utf-8")
+
+
+def _week_avail(*employees: str, days: range | list[int] | None = None) -> bytes:
+    day_list = list(range(1, 6) if days is None else days)
+    rows: list[str] = []
+    for name in employees:
+        for i in day_list:
+            on = WEEK_START + timedelta(days=i)
+            rows.append(f"{name},{on.isoformat()},06:00,22:00")
+    return _avail_csv(*rows)
 
 
 def _four_by_ten_schedule(start: date) -> list[dict[str, Any]]:
@@ -127,15 +114,24 @@ def _bad_s37_packet() -> dict[str, Any]:
     }
 
 
-def _wide_availability() -> bytes:
-    rows = [
-        f"sam,{(WEEK_START + timedelta(days=i)).isoformat()},06:00,22:00"
-        for i in range(7)
-    ]
-    return _avail_csv(*rows)
-
-
-SCENARIO_IDS = ("clean_week", "ot_gate", "bad_s37_packet")
+def demand_to_payload(demand: CoverageDemand) -> dict[str, Any]:
+    """Serialize planned demand for replay / exhibit storage (not a client input)."""
+    return {
+        "week_start": demand.week_start.isoformat(),
+        "source": demand.source,
+        "demand_id": demand.demand_id,
+        "shifts": [
+            {
+                "shift_id": s.shift_id,
+                "employee": s.employee,
+                "date": s.date.isoformat(),
+                "start": s.start.strftime("%H:%M"),
+                "end": s.end.strftime("%H:%M"),
+                "meal_break_minutes": s.meal_break_minutes,
+            }
+            for s in demand.shifts
+        ],
+    }
 
 
 @dataclass(frozen=True)
@@ -143,58 +139,127 @@ class DemoScenario:
     scenario_id: str
     title: str
     ask: str
+    hours_of_operation: bytes
+    sales_projections: bytes
     availability_raw: bytes
-    time_off_raw: bytes | None
-    demand: dict[str, Any]
+    time_off_raw: bytes
     averaging_packets: tuple[dict[str, Any], ...] = ()
     decision_id: str = ""
 
 
 def build_scenario(scenario_id: str) -> DemoScenario:
     sid = scenario_id.strip().lower()
-    if sid == "clean_week":
+    # Legacy aliases from the prior demo sprint.
+    if sid in {"clean_week", "busy", "busy_week"}:
+        sid = "busy_week_zero_ot"
+    if sid in {"ot_gate", "peak", "overtime"}:
+        sid = "peak_needs_ot"
+    if sid in {"time_off", "timeoff", "time-off"}:
+        sid = "time_off_gate"
+    if sid in {"bad_s37", "bad_packet"}:
+        sid = "bad_s37_packet"
+
+    if sid == "busy_week_zero_ot":
         return DemoScenario(
             scenario_id=sid,
-            title="Clean week",
-            ask="Draft a clean Mon–Fri week for Sam, 09:00–17:30 with a meal break.",
-            availability_raw=_wide_availability(),
+            title="Busy week — zero OT",
+            ask=(
+                "Take Mon–Fri hours and steady sales with Sam and Jordan available — "
+                "draft a compliant zero-OT week."
+            ),
+            hours_of_operation=_ops_csv(
+                "monday,09:00,17:30",
+                "tuesday,09:00,17:30",
+                "wednesday,09:00,17:30",
+                "thursday,09:00,17:30",
+                "friday,09:00,17:30",
+            ),
+            sales_projections=_sales_csv(
+                "monday,1500",
+                "tuesday,1500",
+                "wednesday,1500",
+                "thursday,1500",
+                "friday,1500",
+            ),
+            availability_raw=_week_avail("sam", "jordan"),
             time_off_raw=_timeoff_csv(),
-            demand=_clean_week_demand(),
-            decision_id="dec_demo_clean_week_2026w40",
+            decision_id="dec_demo_busy_week_2026w40",
         )
-    if sid == "ot_gate":
+    if sid == "peak_needs_ot":
         return DemoScenario(
             scenario_id=sid,
-            title="Overtime gate",
-            ask="Cover Monday with a ten-hour day for Sam — expect overtime.",
-            availability_raw=_wide_availability(),
+            title="Peak needs OT",
+            ask=(
+                "Peak Monday: store opens 08:00–18:30 and only Sam is available — "
+                "expect overtime before issue."
+            ),
+            hours_of_operation=_ops_csv(
+                "monday,08:00,18:30",
+                "tuesday,09:00,17:30",
+                "wednesday,09:00,17:30",
+                "thursday,09:00,17:30",
+                "friday,09:00,17:30",
+            ),
+            sales_projections=_sales_csv(
+                "monday,700",
+                "tuesday,700",
+                "wednesday,700",
+                "thursday,700",
+                "friday,700",
+            ),
+            availability_raw=_week_avail("sam"),
             time_off_raw=_timeoff_csv(),
-            demand=_ot_week_demand(),
-            decision_id="dec_demo_ot_week_2026w40",
+            decision_id="dec_demo_peak_ot_2026w40",
         )
-    if sid in {"bad_s37_packet", "bad_s37", "bad_packet"}:
+    if sid == "time_off_gate":
         return DemoScenario(
-            scenario_id="bad_s37_packet",
+            scenario_id=sid,
+            title="Time-off gate",
+            ask=(
+                "Sam has a PENDING time-off request for Monday — draft and show the gate."
+            ),
+            hours_of_operation=_ops_csv(
+                "monday,09:00,17:30",
+                "tuesday,09:00,17:30",
+                "wednesday,09:00,17:30",
+                "thursday,09:00,17:30",
+                "friday,09:00,17:30",
+            ),
+            sales_projections=_sales_csv(
+                "monday,500",
+                "tuesday,500",
+                "wednesday,500",
+                "thursday,500",
+                "friday,500",
+            ),
+            availability_raw=_week_avail("sam"),
+            time_off_raw=_timeoff_csv(
+                "to_sam_mon,sam,2026-09-28,2026-09-28,PENDING"
+            ),
+            decision_id="dec_demo_timeoff_2026w40",
+        )
+    if sid == "bad_s37_packet":
+        return DemoScenario(
+            scenario_id=sid,
             title="Bad s.37 packet",
-            ask="Apply Sam's averaging packet and draft the agreed 4×10 week.",
-            availability_raw=_wide_availability(),
+            ask=(
+                "Apply Sam's averaging packet (missing employee signature) and draft "
+                "the week — packet must reject."
+            ),
+            hours_of_operation=_ops_csv(
+                "monday,08:00,18:30",
+                "tuesday,08:00,18:30",
+                "wednesday,08:00,18:30",
+                "thursday,08:00,18:30",
+            ),
+            sales_projections=_sales_csv(
+                "monday,500",
+                "tuesday,500",
+                "wednesday,500",
+                "thursday,500",
+            ),
+            availability_raw=_week_avail("sam", days=[1, 2, 3, 4]),
             time_off_raw=_timeoff_csv(),
-            demand={
-                "week_start": WEEK_START.isoformat(),
-                "source": "fixture",
-                "demand_id": "dem_bad_packet",
-                "shifts": [
-                    {
-                        "shift_id": f"sh_{(WEEK_START + timedelta(days=i)).isoformat()}",
-                        "employee": "sam",
-                        "date": (WEEK_START + timedelta(days=i)).isoformat(),
-                        "start": "08:00",
-                        "end": "18:30",
-                        "meal_break_minutes": 30,
-                    }
-                    for i in (1, 2, 3, 4)
-                ],
-            },
             averaging_packets=(_bad_s37_packet(),),
             decision_id="dec_demo_bad_s37_2026w40",
         )
@@ -202,38 +267,52 @@ def build_scenario(scenario_id: str) -> DemoScenario:
 
 
 _ASK_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"overtime|ten[- ]hour|10[- ]hour|\bot\b", re.I), "ot_gate"),
+    (re.compile(r"time[- ]?off|pending leave|pto", re.I), "time_off_gate"),
     (re.compile(r"averag|s\.?\s*37|packet|4\s*[x×]\s*10", re.I), "bad_s37_packet"),
-    (re.compile(r"clean|mon.?fri|coverage|week", re.I), "clean_week"),
+    (
+        re.compile(r"peak|overtime|ten[- ]hour|10[- ]hour|\bot\b|18:30", re.I),
+        "peak_needs_ot",
+    ),
+    (
+        re.compile(r"busy|zero[- ]?ot|steady|sam and jordan|mon.?fri", re.I),
+        "busy_week_zero_ot",
+    ),
 )
 
 
 def resolve_ask_to_scenario(ask: str) -> str:
-    """Map plain-language ask → fixture scenario. No live model in the test path."""
+    """Map plain-language ask → scenario. No live model in the test path."""
     text = (ask or "").strip()
     if not text:
-        return "clean_week"
+        return "busy_week_zero_ot"
     for pattern, scenario_id in _ASK_PATTERNS:
         if pattern.search(text):
             return scenario_id
-    return "clean_week"
+    return "busy_week_zero_ot"
+
+
+def _input_preview(label: str, raw: bytes, *, max_lines: int = 6) -> dict[str, Any]:
+    text = raw.decode("utf-8").strip()
+    lines = text.splitlines()
+    return {
+        "label": label,
+        "rows": max(0, len(lines) - 1),
+        "preview": "\n".join(lines[: max_lines + 1]),
+    }
 
 
 def ensure_fixture_files(root: Path | None = None) -> Path:
-    """Write synthetic demo sheets under fixtures/demo/ (idempotent)."""
+    """Write synthetic four-input sheets under fixtures/demo/ (idempotent)."""
     out = root or fixtures_dir()
     out.mkdir(parents=True, exist_ok=True)
     for sid in SCENARIO_IDS:
         scenario = build_scenario(sid)
         base = out / sid
         base.mkdir(parents=True, exist_ok=True)
+        (base / "hours_of_operation.csv").write_bytes(scenario.hours_of_operation)
+        (base / "sales_projections.csv").write_bytes(scenario.sales_projections)
         (base / "availability.csv").write_bytes(scenario.availability_raw)
-        if scenario.time_off_raw is not None:
-            (base / "time_off.csv").write_bytes(scenario.time_off_raw)
-        (base / "demand.json").write_text(
-            json.dumps(scenario.demand, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        (base / "time_off.csv").write_bytes(scenario.time_off_raw)
         if scenario.averaging_packets:
             (base / "averaging_packet.json").write_text(
                 json.dumps(scenario.averaging_packets[0], indent=2, sort_keys=True)
@@ -257,6 +336,8 @@ class DemoSession:
     availability: list[AvailabilityWindow] = field(default_factory=list)
     time_off: list[TimeOffRequest] = field(default_factory=list)
     packets: list[AveragingPacket] = field(default_factory=list)
+    hours_of_operation: bytes = b""
+    sales_projections: bytes = b""
     availability_raw: bytes = b""
     time_off_raw: bytes | None = None
     packet_payloads: list[dict[str, Any]] = field(default_factory=list)
@@ -265,6 +346,7 @@ class DemoSession:
     exhibit_paths: dict[str, str] = field(default_factory=dict)
     last_error: str | None = None
     replay_sentence: str | None = None
+    inputs: dict[str, Any] = field(default_factory=dict)
 
     def reset(self) -> None:
         self.__dict__.update(DemoSession().__dict__)
@@ -275,10 +357,21 @@ class DemoSession:
         self.scenario_id = scenario.scenario_id
         self.ask = ask if ask is not None else scenario.ask
         self.decision_id = scenario.decision_id
+        self.hours_of_operation = scenario.hours_of_operation
+        self.sales_projections = scenario.sales_projections
         self.availability_raw = scenario.availability_raw
         self.time_off_raw = scenario.time_off_raw
-        self.demand_payload = scenario.demand
         self.packet_payloads = list(scenario.averaging_packets)
+        self.inputs = {
+            "hours_of_operation": _input_preview(
+                "Hours of operations", scenario.hours_of_operation
+            ),
+            "sales_projections": _input_preview(
+                "Sales projections", scenario.sales_projections
+            ),
+            "availability": _input_preview("Availability", scenario.availability_raw),
+            "time_off": _input_preview("Time-off requests", scenario.time_off_raw),
+        }
 
         self.chain = AuditChain()
         self.availability = parse_availability_sheet(
@@ -293,7 +386,13 @@ class DemoSession:
             parse_averaging_packet(payload, chain=self.chain)
             for payload in self.packet_payloads
         ]
-        self.demand = parse_coverage_demand(self.demand_payload, chain=self.chain)
+        self.demand = plan_coverage(
+            self.hours_of_operation,
+            self.sales_projections,
+            WEEK_START,
+            chain=self.chain,
+        )
+        self.demand_payload = demand_to_payload(self.demand)
 
         self.result = compose_week(
             self.demand,
@@ -301,6 +400,7 @@ class DemoSession:
             time_off=self.time_off,
             chain=self.chain,
             averaging_packets=self.packets or None,
+            prefer_zero_ot=True,
         )
         self.last_error = None
         self.exhibit_paths = {}
@@ -310,9 +410,7 @@ class DemoSession:
     def run_ask(self, ask: str) -> dict[str, Any]:
         return self.run_scenario(resolve_ask_to_scenario(ask), ask=ask)
 
-    def approve_pending_ot(
-        self, *, human_name: str, reason: str = "Demo approve: coverage required"
-    ) -> dict[str, Any]:
+    def approve_pending_ot(self, *, human_name: str, reason: str) -> dict[str, Any]:
         if self.result is None:
             raise RuntimeError("no draft loaded")
         pending = pending_ot_lines(self.result.ot_proposals)
@@ -383,7 +481,6 @@ class DemoSession:
             "xlsx": str(bundle.paths.xlsx),
             "audit_json": str(bundle.paths.audit_json),
         }
-        # Replay proof sentence for the drawer / DEMO script.
         inputs = ReplayInputs(
             availability_raw=self.availability_raw,
             demand=self.demand_payload or {},
@@ -391,15 +488,15 @@ class DemoSession:
             time_off_raw=self.time_off_raw,
             averaging_packets=tuple(self.packet_payloads),
             gate_snapshot=bundle.issue.gate_snapshot,
+            prefer_zero_ot=True,
         )
         replay_result = replay(
             inputs,
             expected_schedule_hash=bundle.issue.schedule_hash,
             expected_gate_snapshot=bundle.issue.gate_snapshot,
         )
-        # Dual-plane: placement hash + gate snapshot. Pending OT count comes
-        # from the issued session — rebuild would re-propose PENDING lines.
         issued_pending = len(pending_ot_lines(self.result.ot_proposals))
+        who_why = _ot_approver_sentence(self.result.ot_proposals)
         self.replay_sentence = (
             f"Replay matched schedule_hash={replay_result.schedule_hash} "
             f"and gate_snapshot_hash={replay_result.gate_snapshot_hash} "
@@ -407,6 +504,7 @@ class DemoSession:
             f"({replay_result.placed_count} placed, "
             f"{replay_result.refuse_count} refuses, "
             f"{issued_pending} pending OT)."
+            + (f" {who_why}" if who_why else "")
         )
         self.last_error = None
         return self.to_state()
@@ -446,6 +544,7 @@ class DemoSession:
             "ask": self.ask,
             "week_start": WEEK_START.isoformat(),
             "week_days": week_days,
+            "inputs": dict(self.inputs),
             "placed": placed_rows,
             "ot_proposals": ot_rows,
             "pending_ot_count": len(pending),
@@ -463,6 +562,17 @@ class DemoSession:
         }
 
 
+def _ot_approver_sentence(proposals: list[OvertimeProposal]) -> str:
+    approved = [o for o in proposals if o.status == "APPROVED" and o.decided_by]
+    if not approved:
+        return ""
+    parts = []
+    for o in approved:
+        why = o.reason or "(no reason)"
+        parts.append(f"{o.decided_by} approved OT ({why})")
+    return "Who approved OT and why is on the chain: " + "; ".join(parts) + "."
+
+
 def _ot_row(o: OvertimeProposal) -> dict[str, Any]:
     return {
         "proposal_id": o.proposal_id,
@@ -475,11 +585,12 @@ def _ot_row(o: OvertimeProposal) -> dict[str, Any]:
         "status": o.status,
         "decided_by": o.decided_by,
         "decided_at": o.decided_at,
+        "reason": o.reason,
     }
 
 
 def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
-    """Headless 10-minute proof path: clean → OT gate → bad packet → replay."""
+    """Headless ~15-minute proof: busy zero-OT → peak OT → time-off → bad packet."""
     ensure_fixture_files()
     root = out_root or (
         Path(__file__).resolve().parents[2] / "artifacts" / "demo" / "smoke"
@@ -488,23 +599,26 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
     session = DemoSession()
     report: dict[str, Any] = {"steps": []}
 
-    # 1. Clean week → download + replay
-    state = session.run_scenario("clean_week")
+    # 1. Busy week → zero OT download + replay
+    state = session.run_scenario("busy_week_zero_ot")
     assert state["download_enabled"] is True
     assert state["pending_ot_count"] == 0
-    state = session.write_downloads(root / "clean_week")
+    assert state["inputs"]["hours_of_operation"]["rows"] >= 1
+    assert state["inputs"]["sales_projections"]["rows"] >= 1
+    state = session.write_downloads(root / "busy_week_zero_ot")
     assert state["replay_sentence"]
+    assert Path(state["exhibit_paths"]["audit_json"]).is_file()
     report["steps"].append(
         {
-            "id": "clean_week",
+            "id": "busy_week_zero_ot",
             "download_enabled": state["download_enabled"],
             "replay": state["replay_sentence"],
             "paths": state["exhibit_paths"],
         }
     )
 
-    # 2. OT gate → downloads off, then human approve → on
-    state = session.run_scenario("ot_gate")
+    # 2. Peak OT → blocked, then named human + reason → downloads
+    state = session.run_scenario("peak_needs_ot")
     assert state["download_enabled"] is False
     assert state["pending_ot_count"] >= 1
     blocked = True
@@ -514,22 +628,57 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
     except ExportBlocked:
         pass
     assert blocked
-    state = session.approve_pending_ot(human_name="Alex Rivera")
+    reason = "Peak Monday: only Sam covers the long open"
+    state = session.approve_pending_ot(human_name="Alex Rivera", reason=reason)
     assert state["pending_ot_count"] == 0
     assert state["download_enabled"] is True
-    state = session.write_downloads(root / "ot_approved")
+    state = session.write_downloads(root / "peak_needs_ot")
     assert state["replay_sentence"]
     assert "0 pending OT" in state["replay_sentence"]
+    assert "Alex Rivera" in state["replay_sentence"]
+    assert reason in state["replay_sentence"]
     report["steps"].append(
         {
-            "id": "ot_gate",
+            "id": "peak_needs_ot",
             "approved_by": "Alex Rivera",
+            "reason": reason,
             "replay": state["replay_sentence"],
             "paths": state["exhibit_paths"],
         }
     )
 
-    # 3. Bad s.37 packet → packet_rejected in drawer; standard regime OT may apply
+    # 2b. Refuse path (separate draft)
+    state = session.run_scenario("peak_needs_ot")
+    state = session.refuse_pending_ot(human_name="Alex Rivera")
+    assert state["pending_ot_count"] == 0
+    refused = [s for s in state["audit_drawer"] if "refused overtime" in s.lower()]
+    assert refused, "expected ot_refused prose after refuse"
+    report["steps"].append(
+        {
+            "id": "peak_needs_ot_refuse",
+            "refused_by": "Alex Rivera",
+            "audit_hit": refused[0],
+        }
+    )
+
+    # 3. Time-off gate → pending awaits human
+    state = session.run_scenario("time_off_gate")
+    hits = [
+        s
+        for s in state["audit_drawer"]
+        if "pending time-off" in s.lower() or "awaits human" in s.lower()
+    ]
+    assert hits, "expected pending time-off gate prose in audit drawer"
+    assert state["download_enabled"] is False
+    report["steps"].append(
+        {
+            "id": "time_off_gate",
+            "refused_count": state["refused_count"],
+            "audit_hit": hits[0],
+        }
+    )
+
+    # 4. Bad s.37 packet → packet_rejected; standard regime
     state = session.run_scenario("bad_s37_packet")
     rejected = [
         s
@@ -551,6 +700,9 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
 
     report["ok"] = True
     report["scenarios"] = list(SCENARIO_IDS)
+    report["closing"] = (
+        "Who approved OT and why is on the chain."
+    )
     (root / "smoke_report.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
