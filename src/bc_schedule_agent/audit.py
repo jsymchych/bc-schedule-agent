@@ -11,6 +11,7 @@ AUDIT_KINDS = frozenset(
     {
         "ingest",
         "parse",
+        "plan",
         "place",
         "rule_pass",
         "rule_refuse",

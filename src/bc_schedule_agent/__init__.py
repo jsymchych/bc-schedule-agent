@@ -1,4 +1,4 @@
-"""BC schedule agent — audit chain, rule graph, ingest, composer, regimes, gates, exhibits, demo."""
+"""BC schedule agent — audit chain, rule graph, ingest, planner, composer, regimes, gates, exhibits, demo."""
 
 from bc_schedule_agent.audit import (
     AUDIT_KINDS,
@@ -32,11 +32,15 @@ from bc_schedule_agent.ingest import (
     parse_availability_sheet,
     parse_averaging_packet,
     parse_coverage_demand,
+    parse_hours_of_operation,
+    parse_sales_projections,
     parse_time_off_sheet,
 )
 from bc_schedule_agent.packet import accept_or_reject_packet, check_averaging_packet
+from bc_schedule_agent.planner import plan_coverage
 from bc_schedule_agent.replay import ReplayError, ReplayInputs, ReplayMismatch, replay
 from bc_schedule_agent.ruleset import Ruleset, load_ruleset, ruleset_hash
+from bc_schedule_agent.staffing import StaffingCurve, load_staffing
 
 __all__ = [
     "AUDIT_KINDS",
@@ -53,6 +57,7 @@ __all__ = [
     "Ruleset",
     "STATUTE_URL",
     "ScheduleModel",
+    "StaffingCurve",
     "accept_or_reject_packet",
     "agent_approve_ot",
     "approve_ot",
@@ -63,11 +68,15 @@ __all__ = [
     "decide_time_off",
     "issue_schedule",
     "load_ruleset",
+    "load_staffing",
     "parse_availability_sheet",
     "parse_averaging_packet",
     "parse_coverage_demand",
+    "parse_hours_of_operation",
+    "parse_sales_projections",
     "parse_time_off_sheet",
     "pending_ot_lines",
+    "plan_coverage",
     "refuse_ot",
     "replay",
     "ruleset_hash",

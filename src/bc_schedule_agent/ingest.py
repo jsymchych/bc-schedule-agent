@@ -18,6 +18,8 @@ from bc_schedule_agent.models import (
     CoverageDemand,
     CoverageShift,
     DaySchedule,
+    HoursWindow,
+    SalesProjection,
     TimeOffRequest,
     TimeOffStatus,
     parse_hhmm,
@@ -45,6 +47,87 @@ def _csv_rows(text: str) -> list[dict[str, str]]:
     for row in reader:
         rows.append({(k or "").strip().lower(): (v or "").strip() for k, v in row.items()})
     return rows
+
+
+def _row_date_or_weekday(
+    row: dict[str, str],
+    *,
+    row_label: str,
+) -> tuple[date | None, int | None]:
+    date_val: date | None = None
+    weekday: int | None = None
+    if row.get("date"):
+        date_val = parse_iso_date(row["date"])
+    elif row.get("weekday"):
+        key = row["weekday"].lower()
+        if key not in WEEKDAY_NAMES:
+            raise ValueError(f"{row_label}: unknown weekday {row['weekday']!r}")
+        weekday = WEEKDAY_NAMES[key]
+    else:
+        raise ValueError(f"{row_label}: date or weekday required")
+    return date_val, weekday
+
+
+def parse_hours_of_operation(
+    source: str | Path | bytes,
+    *,
+    chain: AuditChain | None = None,
+) -> list[HoursWindow]:
+    """Parse hours-of-operation CSV: date|weekday, open, close."""
+    raw, label = _read_bytes(source)
+    rows = _csv_rows(raw.decode("utf-8"))
+    windows: list[HoursWindow] = []
+    for i, row in enumerate(rows):
+        date_val, weekday = _row_date_or_weekday(row, row_label=f"hours_of_operation row {i}")
+        open_raw = row.get("open") or row.get("start")
+        close_raw = row.get("close") or row.get("end")
+        if not open_raw or not close_raw:
+            raise ValueError(f"hours_of_operation row {i}: open and close required")
+        open_t = parse_hhmm(open_raw)
+        close_t = parse_hhmm(close_raw)
+        if close_t <= open_t:
+            raise ValueError(f"hours_of_operation row {i}: close must be after open")
+        windows.append(
+            HoursWindow(open=open_t, close=close_t, date=date_val, weekday=weekday)
+        )
+    if chain is not None:
+        chain.append(
+            kind="ingest",
+            actor="agent",
+            subject={"sheet": "hours_of_operation", "rows": len(windows)},
+            evidence={"input_hash": content_hash(raw), "source": label},
+        )
+    return windows
+
+
+def parse_sales_projections(
+    source: str | Path | bytes,
+    *,
+    chain: AuditChain | None = None,
+) -> list[SalesProjection]:
+    """Parse sales-projections CSV: date|weekday, sales (CAD amount)."""
+    raw, label = _read_bytes(source)
+    rows = _csv_rows(raw.decode("utf-8"))
+    projections: list[SalesProjection] = []
+    for i, row in enumerate(rows):
+        date_val, weekday = _row_date_or_weekday(row, row_label=f"sales_projections row {i}")
+        sales_raw = row.get("sales") or row.get("amount") or row.get("projection")
+        if sales_raw is None or sales_raw == "":
+            raise ValueError(f"sales_projections row {i}: sales amount required")
+        amount = float(sales_raw)
+        if amount < 0:
+            raise ValueError(f"sales_projections row {i}: sales must be >= 0")
+        projections.append(
+            SalesProjection(amount=amount, date=date_val, weekday=weekday)
+        )
+    if chain is not None:
+        chain.append(
+            kind="ingest",
+            actor="agent",
+            subject={"sheet": "sales_projections", "rows": len(projections)},
+            evidence={"input_hash": content_hash(raw), "source": label},
+        )
+    return projections
 
 
 def parse_availability_sheet(

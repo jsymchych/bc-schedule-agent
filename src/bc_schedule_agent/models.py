@@ -137,6 +137,39 @@ class AveragingPacket:
 
 
 @dataclass(frozen=True)
+class HoursWindow:
+    """One open/close row from hours-of-operation (weekday or date)."""
+
+    open: time
+    close: time
+    date: date | None = None
+    weekday: int | None = None  # 0=Sunday … 6=Saturday
+
+    def applies(self, on: date) -> bool:
+        if self.date is not None:
+            return self.date == on
+        if self.weekday is not None:
+            return ((on.weekday() + 1) % 7) == self.weekday
+        return False
+
+
+@dataclass(frozen=True)
+class SalesProjection:
+    """One sales projection row (weekday or date). Amount is CAD."""
+
+    amount: float
+    date: date | None = None
+    weekday: int | None = None  # 0=Sunday … 6=Saturday
+
+    def applies(self, on: date) -> bool:
+        if self.date is not None:
+            return self.date == on
+        if self.weekday is not None:
+            return ((on.weekday() + 1) % 7) == self.weekday
+        return False
+
+
+@dataclass(frozen=True)
 class CoverageShift:
     """One placement ask from a stored coverage demand (fixture or prior parse)."""
 
@@ -160,7 +193,7 @@ class CoverageShift:
 class CoverageDemand:
     week_start: date
     shifts: tuple[CoverageShift, ...]
-    source: str = "fixture"  # fixture | local_model:<name>
+    source: str = "fixture"  # fixture | planner:<curve> | local_model:<name>
     demand_id: str = field(default_factory=lambda: f"dem_{uuid4().hex[:10]}")
 
 

@@ -1,0 +1,31 @@
+{
+  "$schema": "bc_schedule_agent_staffing/1.0",
+  "version": "staffing_demo_v1",
+  "currency": "CAD",
+  "notes": "Deterministic demo curve: projected sales CAD → headcount for each open-hour block. Hashed like the ESA ruleset. Not a model and not KitchenStack.",
+  "slot_prefix": "slot",
+  "meal_break_after_hours": 5,
+  "meal_break_minutes": 30,
+  "bands": [
+    {
+      "id": "quiet",
+      "max_sales_inclusive": 800,
+      "headcount": 1
+    },
+    {
+      "id": "steady",
+      "max_sales_inclusive": 2000,
+      "headcount": 2
+    },
+    {
+      "id": "busy",
+      "max_sales_inclusive": 4000,
+      "headcount": 3
+    },
+    {
+      "id": "peak",
+      "max_sales_inclusive": null,
+      "headcount": 4
+    }
+  ]
+}
