@@ -1,4 +1,4 @@
-"""BC schedule agent — audit chain, rule graph, ingest, composer, regimes, gates."""
+"""BC schedule agent — audit chain, rule graph, ingest, composer, regimes, gates, exhibits."""
 
 from bc_schedule_agent.audit import (
     AUDIT_KINDS,
@@ -7,6 +7,12 @@ from bc_schedule_agent.audit import (
     AuditError,
 )
 from bc_schedule_agent.composer import compose_week
+from bc_schedule_agent.exhibit import (
+    LEGAL_POSTURE,
+    STATUTE_URL,
+    ScheduleModel,
+    write_exhibits,
+)
 from bc_schedule_agent.export import (
     ExportBlocked,
     build_pdf_exhibit,
@@ -28,6 +34,7 @@ from bc_schedule_agent.ingest import (
     parse_time_off_sheet,
 )
 from bc_schedule_agent.packet import accept_or_reject_packet, check_averaging_packet
+from bc_schedule_agent.replay import ReplayError, ReplayInputs, ReplayMismatch, replay
 from bc_schedule_agent.ruleset import Ruleset, load_ruleset, ruleset_hash
 
 __all__ = [
@@ -37,7 +44,13 @@ __all__ = [
     "AuditError",
     "ExportBlocked",
     "GateError",
+    "LEGAL_POSTURE",
+    "ReplayError",
+    "ReplayInputs",
+    "ReplayMismatch",
     "Ruleset",
+    "STATUTE_URL",
+    "ScheduleModel",
     "accept_or_reject_packet",
     "agent_approve_ot",
     "approve_ot",
@@ -54,7 +67,9 @@ __all__ = [
     "parse_time_off_sheet",
     "pending_ot_lines",
     "refuse_ot",
+    "replay",
     "ruleset_hash",
+    "write_exhibits",
 ]
 
 __version__ = "0.1.0"

@@ -1,4 +1,4 @@
-"""Issue and exhibit builders. Refuse while any OT line is PENDING_APPROVAL."""
+"""Issue and export gate. Refuse while any OT line is PENDING_APPROVAL."""
 
 from __future__ import annotations
 
@@ -10,6 +10,14 @@ from typing import Any
 
 from bc_schedule_agent.audit import AuditChain
 from bc_schedule_agent.models import ComposeResult, OvertimeProposal, PlacedShift
+
+STATUTE_URL = (
+    "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_01"
+)
+LEGAL_POSTURE = (
+    "Decision support under the Employment Standards Act, not legal advice. "
+    f"{STATUTE_URL}"
+)
 
 
 class ExportBlocked(ValueError):
@@ -62,6 +70,7 @@ def issue_schedule(
     chain: AuditChain,
     decision_id: str,
     ruleset_version: str,
+    ruleset_hash: str | None = None,
     actor: str = "agent",
     timestamp: str | None = None,
 ) -> IssueResult:
@@ -69,24 +78,24 @@ def issue_schedule(
     assert_no_pending_ot(result.ot_proposals)
     ts = timestamp or _utc_now()
     shash = schedule_hash(result.placed)
+    evidence: dict[str, Any] = {
+        "schedule_hash": shash,
+        "ruleset_version": ruleset_version,
+        "placed_count": len(result.placed),
+        "ot_approved_count": sum(
+            1 for p in result.ot_proposals if p.status == "APPROVED"
+        ),
+        "legal_posture": LEGAL_POSTURE,
+        "statute_url": STATUTE_URL,
+        "timestamp": ts,
+    }
+    if ruleset_hash is not None:
+        evidence["ruleset_hash"] = ruleset_hash
     event = chain.append(
         kind="issued",
         actor=actor,
         subject={"decision_id": decision_id},
-        evidence={
-            "schedule_hash": shash,
-            "ruleset_version": ruleset_version,
-            "placed_count": len(result.placed),
-            "ot_approved_count": sum(
-                1 for p in result.ot_proposals if p.status == "APPROVED"
-            ),
-            "legal_posture": (
-                "Decision support under the Employment Standards Act, "
-                "not legal advice. "
-                "https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/00_96113_01"
-            ),
-            "timestamp": ts,
-        },
+        evidence=evidence,
         timestamp=ts,
     )
     return IssueResult(
@@ -101,17 +110,17 @@ def build_pdf_exhibit(
     *,
     decision_id: str,
     ruleset_version: str,
+    **kwargs: Any,
 ) -> dict[str, Any]:
-    """Wave C stub: PDF builder refuses while any OT line is pending."""
-    assert_no_pending_ot(result.ot_proposals)
-    return {
-        "format": "pdf",
-        "decision_id": decision_id,
-        "ruleset_version": ruleset_version,
-        "schedule_hash": schedule_hash(result.placed),
-        "bytes": b"%PDF-stub",
-        "downloadable": True,
-    }
+    """Delegate to exhibit renderer (Wave D). Extra kwargs accepted for forward compat."""
+    from bc_schedule_agent.exhibit import build_pdf_exhibit as _build
+
+    return _build(
+        result,
+        decision_id=decision_id,
+        ruleset_version=ruleset_version,
+        **kwargs,
+    )
 
 
 def build_xlsx_exhibit(
@@ -119,39 +128,17 @@ def build_xlsx_exhibit(
     *,
     decision_id: str,
     ruleset_version: str,
+    **kwargs: Any,
 ) -> dict[str, Any]:
-    """Wave C stub: XLSX builder refuses while any OT line is pending."""
-    assert_no_pending_ot(result.ot_proposals)
-    return {
-        "format": "xlsx",
-        "decision_id": decision_id,
-        "ruleset_version": ruleset_version,
-        "schedule_hash": schedule_hash(result.placed),
-        "rows": [
-            {
-                "shift_id": p.shift_id,
-                "employee": p.employee,
-                "date": p.date.isoformat(),
-                "start": p.start.isoformat(timespec="minutes"),
-                "end": p.end.isoformat(timespec="minutes"),
-                "worked_hours": p.worked_hours,
-            }
-            for p in result.placed
-        ],
-        "ot_lines": [
-            {
-                "proposal_id": p.proposal_id,
-                "employee": p.employee,
-                "date": p.date.isoformat(),
-                "hours": p.hours,
-                "multiplier": p.multiplier,
-                "section": p.section,
-                "status": p.status,
-            }
-            for p in result.ot_proposals
-        ],
-        "downloadable": True,
-    }
+    """Delegate to exhibit renderer (Wave D). Extra kwargs accepted for forward compat."""
+    from bc_schedule_agent.exhibit import build_xlsx_exhibit as _build
+
+    return _build(
+        result,
+        decision_id=decision_id,
+        ruleset_version=ruleset_version,
+        **kwargs,
+    )
 
 
 def proposal_snapshot(proposal: OvertimeProposal) -> dict[str, Any]:
