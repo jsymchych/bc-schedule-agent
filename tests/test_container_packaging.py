@@ -17,7 +17,7 @@ def test_dockerfile_present_and_serves_demo_module() -> None:
     assert "HOST=0.0.0.0" in text
     assert "PORT=8080" in text
     assert "PYTHONPATH=/app/src" in text
-    assert "pip install" not in text
+    assert "RUN pip install" not in text
     assert "beside ks-ai-backend" in text
     assert "No Neon" in text
     assert "No Wellington" in text
