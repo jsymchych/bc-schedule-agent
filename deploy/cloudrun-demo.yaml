@@ -1,0 +1,40 @@
+# Cloud Run service shape for bc-schedule-agent demo (Wave A).
+# Not applied by this file alone — use deploy/cloudrun-demo.sh after typed yes.
+#
+# Project: nexus-sovereign-engine
+# Region:  us-central1
+# Name:    bc-schedule-agent-demo  (own service beside ks-ai-backend)
+#
+# Ingress: all (edge proxy must reach it) + no public invoker.
+# Strangers without IAM/auth get 403 — not a walkable public demo.
+# Edge allowlist (Wave B) is the invite gate; this service stays synthetic-only.
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: bc-schedule-agent-demo
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "2"
+        run.googleapis.com/execution-environment: gen2
+    spec:
+      containerConcurrency: 40
+      timeoutSeconds: 300
+      containers:
+        - image: us-central1-docker.pkg.dev/nexus-sovereign-engine/bc-schedule-agent/demo:latest
+          ports:
+            - name: http1
+              containerPort: 8080
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            # PORT is injected by Cloud Run; default 8080 matches Dockerfile.
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi

@@ -5,12 +5,16 @@ Ollama is not required for the smoke gate.
 
   python3 -m bc_schedule_agent.demo_app
   # open http://127.0.0.1:8765/
+
+Container / Cloud Run: bind HOST=0.0.0.0 and PORT from the environment
+(Cloud Run injects PORT). Local defaults stay 127.0.0.1:8765.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -738,10 +742,19 @@ class DemoHandler(BaseHTTPRequestHandler):
         )
 
 
+def _default_host() -> str:
+    return os.environ.get("HOST", "127.0.0.1").strip() or "127.0.0.1"
+
+
+def _default_port() -> int:
+    raw = os.environ.get("PORT", "8765").strip() or "8765"
+    return int(raw)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="BC schedule agent local demo UI")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--host", default=_default_host())
+    parser.add_argument("--port", type=int, default=_default_port())
     args = parser.parse_args(argv)
     ensure_fixture_files()
     ensure_history_fixtures()
