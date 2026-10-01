@@ -11,7 +11,10 @@ COPY fixtures ./fixtures
 COPY rulesets ./rulesets
 COPY DEMO.md ./
 
-RUN pip install --no-cache-dir .
+# Keep the repo layout on disk. parents[2] from src/bc_schedule_agent/*.py
+# resolves to /app (fixtures/, rulesets/, artifacts/). A plain pip install
+# would relocate the package under site-packages and break those paths.
+ENV PYTHONPATH=/app/src
 
 # Cloud Run injects PORT; bind all interfaces in-container only.
 ENV HOST=0.0.0.0
