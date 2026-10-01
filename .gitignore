@@ -4,6 +4,13 @@ __pycache__/
 *.egg-info/
 .DS_Store
 .pytest_cache/
+# Edge (Vercel) install / build artifacts — source under edge/ is versioned.
+edge/node_modules/
+edge/.next/
+edge/.vercel/
+edge/.env
+edge/.env.local
+edge/.env*.local
 # Rolling week shelf — runtime only; survives restart, not versioned.
 artifacts/history/
 # Named parameter shelf — runtime only; survives restart, not versioned.

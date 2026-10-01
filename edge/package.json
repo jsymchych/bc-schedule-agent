@@ -1,0 +1,25 @@
+{
+  "name": "bc-schedule-agent-edge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Thin Vercel edge for schedule-demo.kitchenstack-ai.com — Google OAuth + ALLOWED_EMAILS + reverse proxy to Cloud Run demo.",
+  "scripts": {
+    "dev": "next dev --port 3007",
+    "build": "next build",
+    "start": "next start --port 3007",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "google-auth-library": "^9.15.1",
+    "next": "^15.5.15",
+    "next-auth": "^5.0.0-beta.30",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}
