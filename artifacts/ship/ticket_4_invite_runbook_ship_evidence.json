@@ -4,7 +4,7 @@
   "blueprint": "bc-schedule-agent-showcase-invite-token",
   "shipped_at": "2026-10-02T00:35:00Z",
   "branch": "build/ticket_4_invite-runbook",
-  "bay_sha": "7e8c6d590d1f786ed4d41cbb1b096a161d594748",
+  "bay_sha": "8b403dc74012c8e24a77fcf16661bf4f5c61b05b",
   "runbook": "deploy/invite-runbook.md",
   "mint_cli": "scripts/mint_invite.py",
   "public_repo": "https://github.com/jsymchych/bc-schedule-agent",
