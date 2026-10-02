@@ -1,0 +1,13 @@
+{
+  "ticket": "ticket_3_public-github-hygiene",
+  "typed_yes": "public GitHub remote create + push",
+  "ts": "2026-10-02T00:22:35Z",
+  "repo": "jsymchych/bc-schedule-agent",
+  "url": "https://github.com/jsymchych/bc-schedule-agent",
+  "visibility": "PUBLIC",
+  "sha": "9a76a323f26930aef2ea6b531339baf2e31046f5",
+  "branch": "main",
+  "prior_commit": "evt_cmt_666d2fa82e65",
+  "prior_propose": "evt_9872bb04fad8",
+  "note": "Pushed committed main only; invite-token WIP and local .env* left untracked/local"
+}

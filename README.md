@@ -44,7 +44,7 @@ Invite-gated demo (no public Cloud Run):
 
 Unauthenticated visitors do not reach the demo UI. Direct Cloud Run URLs are not the prospect path. Edge admit details live in `edge/README.md`.
 
-Public GitHub remote creation waits for a typed **yes** in the CTO seat (spend gate).
+Public proof repo: https://github.com/jsymchych/bc-schedule-agent
 
 ## Waves A–E (engine)
 
