@@ -1,13 +1,23 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
+const MESSAGES: Record<string, string> = {
+  invite_required:
+    "This hosted walkthrough opens with a single-use invite link from the operator. Google sign-in is not used here.",
+  already_used:
+    "That invite link was already used. Ask the operator for a fresh signed invite.",
+  expired: "That invite link has expired. Ask the operator for a fresh signed invite.",
+  invalid: "That invite link is invalid. Ask the operator for a fresh signed invite.",
+  misconfigured:
+    "Invite gate is misconfigured (signing secret or redeem ledger). Operator must fix env before demos.",
+};
+
 function LoginInner() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
-  const error = searchParams.get("error");
+  const reason = searchParams.get("reason") || "invite_required";
+  const message = MESSAGES[reason] || MESSAGES.invite_required;
 
   return (
     <main
@@ -42,47 +52,13 @@ function LoginInner() {
         >
           Schedule demo
         </h1>
-        <p style={{ margin: "0 0 1.75rem", color: "#b7c4b8", lineHeight: 1.5 }}>
-          Sign in with an invited Google account to open the hosted walkthrough.
-          This is not the live KitchenStack Scheduler.
+        <p style={{ margin: "0 0 1.25rem", color: "#b7c4b8", lineHeight: 1.5 }}>
+          {message}
         </p>
-
-        {error ? (
-          <div
-            role="alert"
-            style={{
-              marginBottom: "1.25rem",
-              padding: "0.85rem 1rem",
-              borderRadius: "0.5rem",
-              background: "rgba(180, 60, 50, 0.18)",
-              border: "1px solid rgba(220, 120, 100, 0.35)",
-              color: "#f0c4bc",
-              fontSize: "0.9rem",
-            }}
-          >
-            {error === "AccessDenied"
-              ? "That Google account is not on the schedule-demo allowlist."
-              : "Sign-in failed. Try again or ask the operator to confirm your invite."}
-          </div>
-        ) : null}
-
-        <button
-          type="button"
-          onClick={() => signIn("google", { callbackUrl })}
-          style={{
-            width: "100%",
-            padding: "0.9rem 1.1rem",
-            borderRadius: "0.55rem",
-            border: "1px solid #3d5244",
-            background: "#e8efe6",
-            color: "#121814",
-            fontWeight: 650,
-            fontSize: "0.95rem",
-            cursor: "pointer",
-          }}
-        >
-          Sign in with Google
-        </button>
+        <p style={{ margin: 0, color: "#8fa894", fontSize: "0.9rem", lineHeight: 1.5 }}>
+          This is not the live KitchenStack Scheduler. Open the invite URL you were
+          sent (one redeem, then a short session).
+        </p>
       </div>
     </main>
   );

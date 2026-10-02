@@ -22,7 +22,7 @@ REFUSE: DNS cutover + edge prod deploy wait for typed yes in CTO chat.
   Vercel project (intended): ${PROJECT_NAME}
   Proxy target: Cloud Run ${CLOUD_RUN_SERVICE} (${GCP_PROJECT}/${GCP_REGION})
   DNS runbook: ${ROOT}/deploy/dns-schedule-demo.md
-  Confirm ALLOWED_EMAILS edits are on schedule-demo project — not only app.
+  Confirm INVITE_SIGNING_SECRET + KV_REST_API_* on schedule-demo project (not Google allowlist).
 EOF
   exit 2
 fi
@@ -52,5 +52,6 @@ else
   echo "[iam] skip — set EDGE_RUN_INVOKER_MEMBER=serviceAccount:…@….iam.gserviceaccount.com after SA exists"
 fi
 
-echo "[done] edge prod deploy attempted; confirm schedule-demo host + allowlist on THIS project"
+echo "[done] edge prod deploy attempted; confirm schedule-demo host + invite env on THIS project"
 echo "[remind] do not bind allUsers run.invoker on Cloud Run"
+echo "[remind] mint via scripts/mint_invite.py; Google OAuth is not the admit path"

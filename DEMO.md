@@ -13,11 +13,15 @@ The product takes four sheets — hours of operations, sales projections, availa
 
 ### Hosted (prospect / pitch)
 
-1. Open **https://schedule-demo.kitchenstack-ai.com** after the operator invite (see `edge/README.md` for the admit path).
+1. Open the **signed invite URL** the operator sent (`/invite?t=…` on
+   **https://schedule-demo.kitchenstack-ai.com**). First open burns the invite;
+   later access is the session cookie. See `deploy/invite-runbook.md`.
 2. Walk minutes 0–15 below in that one browser tab.
-3. Do **not** open the raw Cloud Run URL; admit is invite-only via the edge.
+3. Do **not** open the raw Cloud Run URL; admit is signed-invite only via the edge.
+   No Google login. No email allowlist steps.
 
-Hosted cutover and invite send wait for typed **yes** where spend/external-send applies.
+Hosted cutover and real prospect invite send wait for typed **yes** where
+spend/external-send applies.
 
 ### Local clone (developer / stranger)
 

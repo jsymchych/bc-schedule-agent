@@ -38,11 +38,12 @@ Walkthrough script: [`DEMO.md`](DEMO.md).
 
 ## Hosted walkthrough
 
-Invite-gated demo (no public Cloud Run):
+Signed-invite demo (no public Cloud Run):
 
-- **https://schedule-demo.kitchenstack-ai.com**
+- Host: **https://schedule-demo.kitchenstack-ai.com**
+- Operator mint / link pack / rehearsal: [`deploy/invite-runbook.md`](deploy/invite-runbook.md)
 
-Unauthenticated visitors do not reach the demo UI. Direct Cloud Run URLs are not the prospect path. Edge admit details live in `edge/README.md`.
+Unauthenticated visitors do not reach the demo UI. Direct Cloud Run URLs are not the prospect path. Real prospect invite send waits for typed **yes**.
 
 Public proof repo: https://github.com/jsymchych/bc-schedule-agent
 

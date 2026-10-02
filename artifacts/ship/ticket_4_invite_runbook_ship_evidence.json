@@ -1,0 +1,27 @@
+{
+  "ticket": "ticket_4_invite-runbook",
+  "wave": "D",
+  "blueprint": "bc-schedule-agent-showcase-invite-token",
+  "shipped_at": "2026-10-02T00:35:00Z",
+  "branch": "build/ticket_4_invite-runbook",
+  "runbook": "deploy/invite-runbook.md",
+  "mint_cli": "scripts/mint_invite.py",
+  "public_repo": "https://github.com/jsymchych/bc-schedule-agent",
+  "schedule_demo_url": "https://schedule-demo.kitchenstack-ai.com",
+  "local_verification": {
+    "pytest": "113 passed, 2 skipped",
+    "headless_demo_smoke": "PASS"
+  },
+  "live_smoke": {
+    "schedule_demo_health_http": 200,
+    "fresh_invite_redeem": "307 Set-Cookie sd_session → demo HTML 200",
+    "second_redeem": "307 login?reason=already_used",
+    "unauth_host": "307 invite-required",
+    "cloudrun_anon_http": 403,
+    "time_off_approve_deny_ui": "ABSENT (deferred)"
+  },
+  "pending_operator": [
+    "typed yes before real prospect invite send"
+  ],
+  "note": "Wave D invite runbook + mint CLI + invite-token edge source aligned to live Wave B admit. No prospect send from this seat."
+}

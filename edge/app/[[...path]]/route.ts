@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { getCloudRunIdToken } from "@/lib/cloudrun-auth";
 import {
   cloudRunOrigin,
@@ -6,6 +5,7 @@ import {
   isEdgeOwnedPath,
   upstreamUrl,
 } from "@/lib/proxy";
+import { readSessionFromCookie } from "@/lib/session";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -17,8 +17,8 @@ async function proxy(request: Request): Promise<Response> {
     return NextResponse.json({ error: "not proxied" }, { status: 404 });
   }
 
-  const session = await auth();
-  if (!session?.user?.email) {
+  const session = await readSessionFromCookie(request.headers.get("cookie"));
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

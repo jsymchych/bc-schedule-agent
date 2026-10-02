@@ -38,7 +38,7 @@ export function filterRequestHeaders(
   incoming.forEach((value, key) => {
     const lower = key.toLowerCase();
     if (HOP_BY_HOP.has(lower)) return;
-    if (lower === "cookie") return; // do not forward NextAuth session cookies upstream
+    if (lower === "cookie") return; // do not forward edge session cookies upstream
     if (lower === "authorization") return;
     out.set(key, value);
   });
@@ -51,7 +51,7 @@ export function filterRequestHeaders(
 /** Paths that must never be proxied (auth + edge control plane). */
 export function isEdgeOwnedPath(pathname: string): boolean {
   if (pathname === "/login" || pathname.startsWith("/login/")) return true;
-  if (pathname.startsWith("/api/auth")) return true;
+  if (pathname === "/invite" || pathname.startsWith("/invite/")) return true;
   if (pathname === "/api/health" || pathname.startsWith("/api/health/")) return true;
   if (pathname.startsWith("/_next")) return true;
   if (pathname === "/favicon.ico") return true;

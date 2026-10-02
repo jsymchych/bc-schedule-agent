@@ -15,10 +15,11 @@ dig schedule-demo.kitchenstack-ai.com +short
 1. In Squarespace → Domains → `kitchenstack-ai.com` → DNS → Custom records.
 2. Add CNAME (or A/ALIAS per Vercel docs) for host `schedule-demo` → Vercel target from the **schedule-demo** edge project (not `app.`).
 3. In Vercel project `bc-schedule-agent-edge` → Domains → add `schedule-demo.kitchenstack-ai.com`.
-4. Wait for TLS; smoke `/api/health` then Google sign-in with an allowlisted email.
+4. Wait for TLS; smoke `/api/health` then mint a signed invite and open `/invite?t=…` once.
 
 ## Do not
 
 - Point this hostname at live KS_AI Scheduler / `app.kitchenstack-ai.com`.
-- Edit only `app.` allowlist and assume schedule-demo inherits it — it does not.
+- Send the raw Cloud Run URL — admit is the signed invite on this edge only.
 - Bind Cloud Run `allUsers` invoker to “make DNS work.”
+- Leave Google OAuth half-on for this host (admit path is invite-token).
