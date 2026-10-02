@@ -7,10 +7,26 @@ Statute: https://www.bclaws.gov.bc.ca/civix/document/id/complete/statreg/96113_0
 
 The product takes four sheets — hours of operations, sales projections, availability, and time-off — and drafts an ESA-compliant week that prefers zero overtime. Coverage is derived from ops + sales. A **History shelf** keeps issued weeks; a **Parameters** panel shows the active parameter shelf (id, hashes, roster). Soft priors from history bias the next draft; the current shelf stays hard authority. Closing line: **who approved OT and why is on the chain.**
 
-## Prep (30 seconds)
+**Shared-demo policy (v1):** one presenter session at a time. Do not run a second concurrent operator session against the same demo process.
+
+## Paths
+
+### Hosted (prospect / pitch)
+
+1. Open **https://schedule-demo.kitchenstack-ai.com** after the operator invite (see `edge/README.md` for the admit path).
+2. Walk minutes 0–15 below in that one browser tab.
+3. Do **not** open the raw Cloud Run URL; admit is invite-only via the edge.
+
+Hosted cutover and invite send wait for typed **yes** where spend/external-send applies.
+
+### Local clone (developer / stranger)
+
+From a fresh clone of this repo:
 
 ```bash
-cd /Volumes/SovereignSSD/builds/bc-schedule-agent
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
 python3 -m pytest -q
 python3 -m bc_schedule_agent.demo_app
 ```
@@ -20,6 +36,12 @@ Open `http://127.0.0.1:8765/`. Or run the headless smoke path (no browser):
 ```bash
 python3 -c "from bc_schedule_agent.demo import run_smoke_script; print(run_smoke_script()['ok'])"
 ```
+
+Estate checkouts may `cd` into a private builds tree instead of cloning; the venv / `pip install -e ".[dev]"` / `pytest` / `demo_app` sequence is the same.
+
+## Prep (30 seconds)
+
+Confirm either hosted session (invite) or local `demo_app` is up. One tab only.
 
 ## Minute 0–3 — History shelf + parameters
 

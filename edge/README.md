@@ -20,7 +20,7 @@ Copy `.env.example`. Required for prod:
 
 ## Shared-demo policy (v1)
 
-One presenter session at a time. Process-local synthetic state — no multi-tenant sticky sessions.
+One presenter session at a time. Process-local synthetic state — no multi-tenant sticky sessions. Documented for public clone / hosted pitch alike.
 
 ## Spend gate
 

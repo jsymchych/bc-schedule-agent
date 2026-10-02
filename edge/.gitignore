@@ -3,6 +3,8 @@ node_modules/
 .env
 .env.local
 .env*.local
+.env.mint.local
 .vercel
 *.log
+*.tsbuildinfo
 next-env.d.ts

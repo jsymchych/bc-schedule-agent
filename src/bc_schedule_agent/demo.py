@@ -1112,12 +1112,23 @@ def _ot_row(o: OvertimeProposal) -> dict[str, Any]:
     }
 
 
+def _report_paths(paths: dict[str, str], repo_root: Path) -> dict[str, str]:
+    """Prefer repo-relative paths in committed smoke reports (no estate absolutes)."""
+    out: dict[str, str] = {}
+    for key, raw in paths.items():
+        path = Path(raw)
+        try:
+            out[key] = path.resolve().relative_to(repo_root.resolve()).as_posix()
+        except ValueError:
+            out[key] = path.as_posix()
+    return out
+
+
 def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
     """Headless ~15-minute proof: busy → peak OT → time-off → bad packet → history continuity."""
     ensure_fixture_files()
-    root = out_root or (
-        Path(__file__).resolve().parents[2] / "artifacts" / "demo" / "smoke"
-    )
+    repo_root = Path(__file__).resolve().parents[2]
+    root = out_root or (repo_root / "artifacts" / "demo" / "smoke")
     root.mkdir(parents=True, exist_ok=True)
     history_root = root / "history"
     shelf_root = root / "parameters"
@@ -1166,7 +1177,7 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
             "id": "busy_week_zero_ot",
             "download_enabled": state["download_enabled"],
             "replay": state["replay_sentence"],
-            "paths": state["exhibit_paths"],
+            "paths": _report_paths(state["exhibit_paths"], repo_root),
             "shelf_size": len(after_busy),
         }
     )
@@ -1197,7 +1208,7 @@ def run_smoke_script(out_root: Path | None = None) -> dict[str, Any]:
             "approved_by": "Alex Rivera",
             "reason": reason,
             "replay": state["replay_sentence"],
-            "paths": state["exhibit_paths"],
+            "paths": _report_paths(state["exhibit_paths"], repo_root),
         }
     )
 

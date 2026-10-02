@@ -4,6 +4,14 @@ __pycache__/
 *.egg-info/
 .DS_Store
 .pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.idea/
+.vscode/
+# Accidental macOS / user shelves — never publish.
+Library/
 # Edge (Vercel) install / build artifacts — source under edge/ is versioned.
 edge/node_modules/
 edge/.next/
@@ -11,6 +19,14 @@ edge/.vercel/
 edge/.env
 edge/.env.local
 edge/.env*.local
+edge/.env.mint.local
+edge/*.tsbuildinfo
+# Secrets / SA material at any depth — never publish.
+*.pem
+*.p12
+**/gcp-sa*.json
+**/service-account*.json
+**/*credentials*.json
 # Rolling week shelf — runtime only; survives restart, not versioned.
 artifacts/history/
 # Named parameter shelf — runtime only; survives restart, not versioned.
